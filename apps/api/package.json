@@ -18,6 +18,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
     "@fastify/multipart": "^10.1.8",
+    "@fastify/rate-limit": "^11.2.2",
     "@huggingface/transformers": "^4.3.2",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",

@@ -184,8 +184,12 @@ export class FakeLLM implements LLMClient {
   }
 }
 
-/** Builds the real Fastify app wired to in-memory fakes. */
-export function buildTestApp(overrides: Partial<AppDeps> = {}) {
+type TestAppOverrides = Partial<Omit<AppDeps, 'settings'>> & {
+  settings?: Partial<AppDeps['settings']>;
+};
+
+/** Builds the real Fastify app wired to in-memory fakes. Settings are merged with test defaults. */
+export function buildTestApp({ settings, ...overrides }: TestAppOverrides = {}) {
   const documents = new InMemoryDocumentRepository();
   const blobs = new InMemoryBlobStore();
   const app = buildApp({
@@ -212,8 +216,12 @@ export function buildTestApp(overrides: Partial<AppDeps> = {}) {
       ),
     },
     traces: new InMemoryTraceStore(),
-    settings: { maxUploadBytes: 1024 * 1024 },
     ...overrides,
+    settings: {
+      maxUploadBytes: 1024 * 1024,
+      rateLimit: { globalPerMinute: 1000, chatPerMinute: 1000, uploadPerMinute: 1000 },
+      ...settings,
+    },
   });
   return { app, documents, blobs };
 }

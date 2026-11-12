@@ -57,9 +57,16 @@ const app = buildApp(
       ),
     },
     traces,
-    settings: { maxUploadBytes: config.MAX_UPLOAD_MB * 1024 * 1024 },
+    settings: {
+      maxUploadBytes: config.MAX_UPLOAD_MB * 1024 * 1024,
+      rateLimit: {
+        globalPerMinute: config.RATE_LIMIT_GLOBAL_PER_MIN,
+        chatPerMinute: config.RATE_LIMIT_CHAT_PER_MIN,
+        uploadPerMinute: config.RATE_LIMIT_UPLOAD_PER_MIN,
+      },
+    },
   },
-  { loggerInstance: logger },
+  { loggerInstance: logger, trustProxy: config.TRUST_PROXY },
 );
 
 async function shutdown(signal: string) {

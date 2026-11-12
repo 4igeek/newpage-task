@@ -16,11 +16,18 @@ export interface DocumentRouteDeps {
 }
 
 export const documentRoutes =
-  ({ upload, library }: DocumentRouteDeps): FastifyPluginAsyncZod =>
+  (
+    { upload, library }: DocumentRouteDeps,
+    limits: { uploadPerMinute: number },
+  ): FastifyPluginAsyncZod =>
   async (app) => {
     app.post(
       '/documents',
-      { schema: { response: { 200: UploadResponse, 201: UploadResponse } } },
+      {
+        schema: { response: { 200: UploadResponse, 201: UploadResponse } },
+        // Uploads use disk, CPU (embedding) and worker time.
+        config: { rateLimit: { max: limits.uploadPerMinute, timeWindow: '1 minute' } },
+      },
       async (req, reply) => {
         const file = await req.file();
         if (!file) throw new DomainError('EMPTY_FILE', 'Expected a multipart "file" field.');

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { ApiError } from '@docchat/shared';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError, type FastifyServerOptions } from 'fastify';
 import {
   serializerCompiler,
@@ -25,7 +26,10 @@ export interface AppDeps {
   documents: DocumentRouteDeps;
   chat: ChatRouteDeps;
   traces: TraceStore;
-  settings: { maxUploadBytes: number };
+  settings: {
+    maxUploadBytes: number;
+    rateLimit: { globalPerMinute: number; chatPerMinute: number; uploadPerMinute: number };
+  };
 }
 
 /** The HTTP meaning of each domain error. Kept here so services stay HTTP-agnostic. */
@@ -66,12 +70,31 @@ export function buildApp(deps: AppDeps, opts: FastifyServerOptions = {}) {
     return reply.status(statusCode).send(body);
   });
 
+  // Per-IP limits. In-memory, so each API instance counts separately; with
+  // several instances, this needs a shared store (Redis) or limits at the edge.
+  app.register(rateLimit, {
+    max: deps.settings.rateLimit.globalPerMinute,
+    timeWindow: '1 minute',
+    // The plugin *throws* what this returns, so it must be an Error for the
+    // error handler above to turn it into a 429 rather than a 500.
+    errorResponseBuilder: (_req, context) =>
+      Object.assign(new Error(`Too many requests. Try again in ${context.after}.`), {
+        statusCode: context.statusCode,
+        code: 'RATE_LIMITED',
+      }),
+  });
+
   app.register(multipart, {
     limits: { fileSize: deps.settings.maxUploadBytes, files: 1, fields: 0 },
   });
   app.register(healthRoutes(deps.health), { prefix: '/api' });
-  app.register(documentRoutes(deps.documents), { prefix: '/api' });
-  app.register(chatRoutes(deps.chat), { prefix: '/api' });
+  app.register(
+    documentRoutes(deps.documents, { uploadPerMinute: deps.settings.rateLimit.uploadPerMinute }),
+    { prefix: '/api' },
+  );
+  app.register(chatRoutes(deps.chat, { perMinute: deps.settings.rateLimit.chatPerMinute }), {
+    prefix: '/api',
+  });
   app.register(traceRoutes(deps.traces), { prefix: '/api' });
 
   return app;

@@ -184,6 +184,9 @@ importers:
       '@fastify/multipart':
         specifier: ^10.1.8
         version: 10.1.8
+      '@fastify/rate-limit':
+        specifier: ^11.2.2
+        version: 11.2.2
       '@huggingface/transformers':
         specifier: ^4.3.2
         version: 4.3.2(@types/node@26.6.6)
@@ -885,6 +888,9 @@ packages:
   '@fastify/proxy-addr@5.1.2':
     resolution: {integrity: sha512-uqB4QsgVoro0XDC+DIftIMGXHdBPn+lK6Ek3xXAIxPMCJfqxnbtyEoMCm2KPUVOuIosd7Cyw9HawEqMFM/UA+g==}
 
+  '@fastify/rate-limit@11.2.2':
+    resolution: {integrity: sha512-Ynxk9BU82Y5Ux7NOk9NqyZpTMdFes8EY8quXrN6ePDsbtG4G9Afb3l9mD8Vw2nv0hXg0iFjV+gkdABReFPlShw==}
+
   '@fastify/swagger@9.9.3':
     resolution: {integrity: sha512-1whjjguZlh4VV6OP2SD7w7ZNXXuLPwLcxbKIu7GckhHGgCyIYwtOyBskc3TLZa7LsaRmZZRiB1nz/JTaCI5grQ==}
 
@@ -1102,6 +1108,10 @@ packages:
 
   '@kwsites/file-exists@1.1.1':
     resolution: {integrity: sha512-m9/5YGR18lIwxSFDwfE3oA7bWuq9kdau6ugN4H2rJeyhFQZcG9AgSHkQtSD15a8WvTgfz9aikZMrKPHvbpqFiw==}
+
+  '@lukeed/ms@2.0.2':
+    resolution: {integrity: sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA==}
+    engines: {node: '>=8'}
 
   '@napi-rs/wasm-runtime@1.2.6':
     resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
@@ -2349,6 +2359,10 @@ packages:
 
   inline-style-parser@0.2.9:
     resolution: {integrity: sha512-IttN8BqKLxzUrnTqHI+/hwAJQItBAUjdoHERCDv+oOuX48VP6bzW8+QjOXSfoevzq3YrYAwX1uLHp8TqO9yIeg==}
+
+  ip-address@10.7.6:
+    resolution: {integrity: sha512-00LYkM6byILa9eQIx6qoaXCM40xTLd56AZ4vyaPW3YTyb49VZYPo5xsiAq4tuQ54GH4R7gVdYScJ1B7B77PuTg==}
+    engines: {node: '>= 12'}
 
   ipaddr.js@2.5.0:
     resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
@@ -3728,6 +3742,13 @@ snapshots:
       '@fastify/forwarded': 3.1.2
       ipaddr.js: 2.5.0
 
+  '@fastify/rate-limit@11.2.2':
+    dependencies:
+      '@lukeed/ms': 2.0.2
+      fastify-plugin: 6.0.1
+      ip-address: 10.7.6
+      toad-cache: 3.7.4
+
   '@fastify/swagger@9.9.3':
     dependencies:
       fastify-plugin: 6.0.1
@@ -3914,6 +3935,8 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
+
+  '@lukeed/ms@2.0.2': {}
 
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)':
     dependencies:
@@ -4919,6 +4942,8 @@ snapshots:
   inherits@2.0.4: {}
 
   inline-style-parser@0.2.9: {}
+
+  ip-address@10.7.6: {}
 
   ipaddr.js@2.5.0: {}
 

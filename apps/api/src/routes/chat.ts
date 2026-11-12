@@ -12,9 +12,14 @@ export interface ChatRouteDeps {
  * reads the stream with fetch().
  */
 export const chatRoutes =
-  ({ answer }: ChatRouteDeps): FastifyPluginAsyncZod =>
+  ({ answer }: ChatRouteDeps, limits: { perMinute: number }): FastifyPluginAsyncZod =>
   async (app) => {
-    app.post('/chat', { schema: { body: ChatRequest } }, async (req, reply) => {
+    const options = {
+      schema: { body: ChatRequest },
+      // Every chat request can cost LLM tokens, so it gets a tighter limit than the API default.
+      config: { rateLimit: { max: limits.perMinute, timeWindow: '1 minute' } },
+    };
+    app.post('/chat', options, async (req, reply) => {
       // If the user navigates away, stop generating (and paying for) tokens.
       const controller = new AbortController();
       reply.raw.on('close', () => {

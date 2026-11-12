@@ -11,7 +11,11 @@ export const healthRoutes =
   async (app) => {
     app.get(
       '/health',
-      { schema: { response: { 200: HealthResponse, 503: HealthResponse } } },
+      {
+        schema: { response: { 200: HealthResponse, 503: HealthResponse } },
+        // Load balancers and Docker poll this constantly; never limit it.
+        config: { rateLimit: false },
+      },
       async (req, reply) => {
         try {
           await health.pingDatabase();

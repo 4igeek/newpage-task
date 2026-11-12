@@ -34,6 +34,17 @@ const ConfigSchema = z.object({
   RETRIEVAL_MIN_SIMILARITY: z.coerce.number().min(0).max(1).default(0.5),
   CHAT_HISTORY_TURNS: z.coerce.number().int().nonnegative().default(6),
 
+  // Abuse protection. Per client IP, per minute. Chat costs money per request, so it's tightest.
+  RATE_LIMIT_GLOBAL_PER_MIN: z.coerce.number().int().positive().default(300),
+  RATE_LIMIT_CHAT_PER_MIN: z.coerce.number().int().positive().default(20),
+  RATE_LIMIT_UPLOAD_PER_MIN: z.coerce.number().int().positive().default(30),
+  /**
+   * Which proxies may set X-Forwarded-For (so rate limits apply to the real
+   * client, not to nginx). Private ranges cover the Docker network; behind a
+   * cloud load balancer, set this to its address range. Never "true" in production.
+   */
+  TRUST_PROXY: z.string().default('loopback,uniquelocal'),
+
   // Worker.
   WORKER_POLL_MS: z.coerce.number().int().positive().default(1000),
   JOB_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
