@@ -9,14 +9,31 @@
     "lineWidth": 100
   },
   "javascript": {
-    "formatter": { "quoteStyle": "single" }
+    "formatter": {
+      "quoteStyle": "single"
+    }
   },
   "linter": {
     "rules": {
       "preset": "recommended",
-      "suspicious": { "noExplicitAny": "error" },
-      "style": { "noNonNullAssertion": "error" }
+      "suspicious": {
+        "noExplicitAny": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "error"
+      }
     }
   },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } }
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
 }
