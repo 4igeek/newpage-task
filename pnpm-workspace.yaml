@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm blocks dependency install scripts by default (supply-chain hardening).
+# Only packages listed here may run them.
+allowBuilds:
+  esbuild: true
+  onnxruntime-node: true # native ML runtime used by the local embedding model
+  protobufjs: false
+  cpu-features: false # optional native speed-up for ssh2 (testcontainers)
+  ssh2: false

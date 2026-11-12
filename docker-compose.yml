@@ -1,0 +1,70 @@
+name: docchat
+
+x-api-env: &api-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://docchat:docchat@db:5432/docchat
+  BLOB_DIR: /data/blobs
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: docchat
+      POSTGRES_PASSWORD: docchat
+      POSTGRES_DB: docchat
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docchat"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # Runs once, then exits. App services start only after it succeeds.
+  migrate:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    command: ["node", "dist/db/migrate.js"]
+    environment: *api-env
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment: *api-env
+    env_file: [{ path: .env, required: false }]
+    ports: ["3000:3000"]
+    volumes: [blobs:/data/blobs]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Same image as the API, different entrypoint. Scale with:
+  #   docker compose up -d --scale worker=3
+  worker:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    command: ["node", "--enable-source-maps", "dist/worker.js"]
+    environment: *api-env
+    volumes: [blobs:/data/blobs]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    ports: ["8080:80"]
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  blobs:
