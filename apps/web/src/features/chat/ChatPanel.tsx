@@ -1,18 +1,29 @@
 import type { DocumentDto } from '@docchat/shared';
 import { MessagesSquare, SquarePen } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDocuments } from '../documents/use-documents';
+import { InspectPanel } from '../inspect/InspectPanel';
 import { AssistantMessage } from './AssistantMessage';
 import { Composer } from './Composer';
 import type { AssistantTurn } from './chat-state';
 import { useChat } from './use-chat';
 
-export function ChatPanel({
-  onOpenSource,
-}: {
-  onOpenSource?: (turn: AssistantTurn, n: number) => void;
-}) {
+export function ChatPanel() {
   const chat = useChat();
+  // Store the turn's id, not the turn: it keeps updating while it streams.
+  const [inspecting, setInspecting] = useState<{ turnId: string; n: number } | null>(null);
+  const inspectedTurn = chat.turns.find(
+    (t): t is AssistantTurn => t.role === 'assistant' && t.id === inspecting?.turnId,
+  );
+  const openSource = useCallback(
+    (turn: AssistantTurn, n: number) => setInspecting({ turnId: turn.id, n }),
+    [],
+  );
+  const closeInspector = useCallback(() => setInspecting(null), []);
+  const selectSource = useCallback(
+    (n: number) => setInspecting((current) => (current ? { ...current, n } : current)),
+    [],
+  );
   const documents = useDocuments();
   const ready = (documents.data ?? []).filter((d) => d.status === 'ready');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -28,62 +39,80 @@ export function ChatPanel({
   const noDocuments = documents.isSuccess && ready.length === 0;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {chat.turns.length > 0 && (
-        <div className="flex justify-end px-4 pt-3">
-          <button
-            type="button"
-            onClick={chat.reset}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-stone-600 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-800"
-          >
-            <SquarePen className="size-3.5" aria-hidden /> New chat
-          </button>
-        </div>
-      )}
+    <div className="flex min-h-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {chat.turns.length > 0 && (
+          <div className="flex justify-end px-4 pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                chat.reset();
+                setInspecting(null);
+              }}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-stone-600 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-800"
+            >
+              <SquarePen className="size-3.5" aria-hidden /> New chat
+            </button>
+          </div>
+        )}
 
-      <div
-        ref={scrollRef}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          pinnedToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-        }}
-        className="min-h-0 flex-1 overflow-y-auto"
-      >
-        <div className="mx-auto w-full max-w-3xl px-4 py-6">
-          {chat.turns.length === 0 ? (
-            <Welcome documents={ready} onAsk={chat.send} noDocuments={noDocuments} />
-          ) : (
-            <ol className="space-y-8" aria-live="polite">
-              {chat.turns.map((turn) => (
-                <li key={turn.id}>
-                  {turn.role === 'user' ? (
-                    <div className="flex justify-end">
-                      <p className="max-w-[85%] rounded-2xl rounded-br-md bg-teal-600 px-4 py-2.5 text-sm whitespace-pre-wrap text-white">
-                        {turn.content}
-                      </p>
-                    </div>
-                  ) : (
-                    <AssistantMessage turn={turn} {...(onOpenSource && { onOpenSource })} />
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
+        <div
+          ref={scrollRef}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            pinnedToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+          }}
+          className="min-h-0 flex-1 overflow-y-auto"
+        >
+          <div className="mx-auto w-full max-w-3xl px-4 py-6">
+            {chat.turns.length === 0 ? (
+              <Welcome documents={ready} onAsk={chat.send} noDocuments={noDocuments} />
+            ) : (
+              <ol className="space-y-8" aria-live="polite">
+                {chat.turns.map((turn) => (
+                  <li key={turn.id}>
+                    {turn.role === 'user' ? (
+                      <div className="flex justify-end">
+                        <p className="max-w-[85%] rounded-2xl rounded-br-md bg-teal-600 px-4 py-2.5 text-sm whitespace-pre-wrap text-white">
+                          {turn.content}
+                        </p>
+                      </div>
+                    ) : (
+                      <AssistantMessage
+                        turn={turn}
+                        onOpenSource={openSource}
+                        activeSource={inspecting?.turnId === turn.id ? inspecting.n : null}
+                      />
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </div>
+
+        <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+          <Composer
+            busy={chat.busy}
+            disabled={noDocuments}
+            placeholder={noDocuments ? 'Upload a document to start…' : 'Ask about your documents…'}
+            onSend={chat.send}
+            onStop={chat.stop}
+          />
+          <p className="mt-2 text-center text-[0.7rem] text-stone-400 dark:text-stone-500">
+            Answers come only from your documents. Check the cited sources.
+          </p>
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-3xl px-4 pb-4">
-        <Composer
-          busy={chat.busy}
-          disabled={noDocuments}
-          placeholder={noDocuments ? 'Upload a document to start…' : 'Ask about your documents…'}
-          onSend={chat.send}
-          onStop={chat.stop}
+      {inspecting && inspectedTurn && (
+        <InspectPanel
+          turn={inspectedTurn}
+          n={inspecting.n}
+          onSelect={selectSource}
+          onClose={closeInspector}
         />
-        <p className="mt-2 text-center text-[0.7rem] text-stone-400 dark:text-stone-500">
-          Answers come only from your documents. Check the cited sources.
-        </p>
-      </div>
+      )}
     </div>
   );
 }

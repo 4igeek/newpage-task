@@ -8,9 +8,12 @@ import { sectionName } from './source-label';
 export function AssistantMessage({
   turn,
   onOpenSource,
+  activeSource = null,
 }: {
   turn: AssistantTurn;
   onOpenSource?: (turn: AssistantTurn, n: number) => void;
+  /** The source currently open in the inspector, if it belongs to this answer. */
+  activeSource?: number | null;
 }) {
   const sources = turn.retrieval?.sources ?? [];
   const cited = new Set(turn.done?.citations ?? []);
@@ -59,15 +62,35 @@ export function AssistantMessage({
       )}
 
       {sources.length > 0 && !notFound && (
-        <SourceList sources={sources} cited={cited} done={turn.status === 'done'} onOpen={open} />
+        <SourceList
+          sources={sources}
+          cited={cited}
+          done={turn.status === 'done'}
+          active={activeSource}
+          onOpen={open}
+        />
       )}
 
-      {turn.done && !notFound && (
-        <p className="text-xs text-stone-400 dark:text-stone-500">
+      {turn.done && (
+        <p className="flex flex-wrap items-center gap-x-1 text-xs text-stone-400 dark:text-stone-500">
           {(turn.done.timings.totalMs / 1000).toFixed(1)}s ·{' '}
-          {plural(turn.done.usage.inputTokens + turn.done.usage.outputTokens, 'token')}
+          {notFound
+            ? 'no model call'
+            : plural(turn.done.usage.inputTokens + turn.done.usage.outputTokens, 'token')}
           {turn.done.outcome === 'truncated' && ' · answer was cut short'}
           {turn.done.outcome === 'refused' && ' · the model declined to answer'}
+          {onOpenSource && (
+            <>
+              {' · '}
+              <button
+                type="button"
+                onClick={() => open(turn.done?.citations[0] ?? 1)}
+                className="rounded text-teal-700 underline-offset-2 hover:underline dark:text-teal-400"
+              >
+                Inspect
+              </button>
+            </>
+          )}
         </p>
       )}
     </article>
@@ -78,11 +101,13 @@ function SourceList({
   sources,
   cited,
   done,
+  active,
   onOpen,
 }: {
   sources: SourceDto[];
   cited: Set<number>;
   done: boolean;
+  active: number | null;
   onOpen: (n: number) => void;
 }) {
   return (
@@ -99,8 +124,9 @@ function SourceList({
               <button
                 type="button"
                 onClick={() => onOpen(s.n)}
+                aria-pressed={active === s.n}
                 title={dim ? 'Retrieved but not cited in the answer' : undefined}
-                className={`flex max-w-64 items-center gap-1.5 rounded-lg border px-2 py-1 text-left text-xs transition hover:border-teal-500 ${
+                className={`flex max-w-64 items-center gap-1.5 rounded-lg border px-2 py-1 text-left text-xs transition hover:border-teal-500 aria-pressed:border-teal-500 aria-pressed:ring-2 aria-pressed:ring-teal-500/20 ${
                   dim
                     ? 'border-stone-200 text-stone-400 dark:border-stone-800 dark:text-stone-500'
                     : 'border-stone-300 bg-white text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300'
