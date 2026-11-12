@@ -4,13 +4,36 @@ import { useState } from 'react';
 import { describeDocument } from '../../lib/format';
 import { useDeleteDocument } from './use-documents';
 
-export function DocumentItem({ doc }: { doc: DocumentDto }) {
+export function DocumentItem({
+  doc,
+  selected,
+  onToggle,
+}: {
+  doc: DocumentDto;
+  selected: boolean;
+  onToggle: () => void;
+}) {
   const remove = useDeleteDocument();
   const [confirming, setConfirming] = useState(false);
   const inFlight = doc.status === 'pending' || doc.status === 'processing';
 
   return (
-    <li className="group relative flex items-start gap-3 rounded-lg px-2.5 py-2 hover:bg-stone-100 dark:hover:bg-stone-800/60">
+    <li
+      className={`group relative flex items-start gap-3 rounded-lg px-2.5 py-2 ${
+        selected
+          ? 'bg-teal-50 dark:bg-teal-950/40'
+          : 'hover:bg-stone-100 dark:hover:bg-stone-800/60'
+      }`}
+    >
+      {/* Only ready documents can be searched, so only they can be selected. */}
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        disabled={doc.status !== 'ready'}
+        aria-label={`Limit chat to ${doc.filename}`}
+        className="mt-2.5 size-3.5 shrink-0 cursor-pointer accent-teal-600 disabled:cursor-not-allowed disabled:opacity-30"
+      />
       <div
         className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-md ${
           doc.status === 'failed'

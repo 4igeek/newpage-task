@@ -1,13 +1,28 @@
 import { FolderOpen, X } from 'lucide-react';
 import { DocumentItem } from './DocumentItem';
+import { resolveScope } from './scope';
 import { UploadArea } from './UploadArea';
 import { useDocuments } from './use-documents';
 
-/** `onClose` is shown on small screens, where the library is a drawer. */
-export function DocumentLibrary({ onClose }: { onClose?: () => void }) {
+/**
+ * The library, with selection: ticking documents limits the chat to them.
+ * `onClose` is shown on small screens, where the library is a drawer.
+ */
+export function DocumentLibrary({
+  selected,
+  onToggle,
+  onClearSelection,
+  onClose,
+}: {
+  selected: ReadonlySet<string>;
+  onToggle: (id: string) => void;
+  onClearSelection: () => void;
+  onClose?: () => void;
+}) {
   const documents = useDocuments();
   const docs = documents.data ?? [];
   const ready = docs.filter((d) => d.status === 'ready').length;
+  const scope = resolveScope(selected, docs);
 
   return (
     <section aria-labelledby="library-heading" className="flex h-full flex-col">
@@ -20,10 +35,20 @@ export function DocumentLibrary({ onClose }: { onClose?: () => void }) {
             Documents
           </h2>
           <div className="ml-auto flex items-center gap-1">
-            {docs.length > 0 && (
-              <span className="text-xs text-stone-500 dark:text-stone-400">
-                {ready} of {docs.length} ready
-              </span>
+            {scope.documentIds ? (
+              <button
+                type="button"
+                onClick={onClearSelection}
+                className="rounded px-1 text-xs text-teal-700 hover:underline dark:text-teal-400"
+              >
+                Clear selection
+              </button>
+            ) : (
+              docs.length > 0 && (
+                <span className="text-xs text-stone-500 dark:text-stone-400">
+                  {ready} of {docs.length} ready
+                </span>
+              )
             )}
             {onClose && (
               <button
@@ -62,11 +87,25 @@ export function DocumentLibrary({ onClose }: { onClose?: () => void }) {
             </p>
           </div>
         ) : (
-          <ul className="space-y-0.5">
-            {docs.map((doc) => (
-              <DocumentItem key={doc.id} doc={doc} />
-            ))}
-          </ul>
+          <>
+            {ready >= 2 && (
+              <p className="px-2.5 pb-2 text-xs text-stone-500 dark:text-stone-400">
+                {scope.documentIds
+                  ? `Chat searches ${scope.count} of ${scope.total} documents.`
+                  : 'Tick documents to limit the chat to them.'}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {docs.map((doc) => (
+                <DocumentItem
+                  key={doc.id}
+                  doc={doc}
+                  selected={selected.has(doc.id) && doc.status === 'ready'}
+                  onToggle={() => onToggle(doc.id)}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </section>

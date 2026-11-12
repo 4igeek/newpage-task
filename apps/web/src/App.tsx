@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { PanelLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ChatPanel } from './features/chat/ChatPanel';
 import { DocumentLibrary } from './features/documents/DocumentLibrary';
 import { api } from './lib/api';
@@ -8,6 +8,18 @@ import { api } from './lib/api';
 export function App() {
   // On small screens the library is a slide-over drawer; on desktop it is a fixed column.
   const [libraryOpen, setLibraryOpen] = useState(false);
+  // Shared by the library (which edits it) and the chat (which searches within it).
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const toggle = useCallback(
+    (id: string) =>
+      setSelected((current) => {
+        const next = new Set(current);
+        if (!next.delete(id)) next.add(id);
+        return next;
+      }),
+    [],
+  );
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
 
   return (
     <div className="flex h-dvh flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
@@ -27,11 +39,16 @@ export function App() {
             libraryOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <DocumentLibrary onClose={() => setLibraryOpen(false)} />
+          <DocumentLibrary
+            selected={selected}
+            onToggle={toggle}
+            onClearSelection={clearSelection}
+            onClose={() => setLibraryOpen(false)}
+          />
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <ChatPanel />
+          <ChatPanel selected={selected} onClearSelection={clearSelection} />
         </main>
       </div>
     </div>

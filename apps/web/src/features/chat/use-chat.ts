@@ -28,7 +28,13 @@ export function useChat(options: { documentIds?: string[] } = {}) {
       setTurns((all) => [
         ...all,
         { id: crypto.randomUUID(), role: 'user', content: text },
-        { id: crypto.randomUUID(), role: 'assistant', content: '', status: 'retrieving' },
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: '',
+          status: 'retrieving',
+          ...(options.documentIds && { scopedTo: options.documentIds.length }),
+        },
       ]);
 
       try {

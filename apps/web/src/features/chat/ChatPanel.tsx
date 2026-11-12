@@ -1,6 +1,7 @@
 import type { DocumentDto } from '@docchat/shared';
-import { MessagesSquare, SquarePen } from 'lucide-react';
+import { Filter, MessagesSquare, SquarePen, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { resolveScope } from '../documents/scope';
 import { useDocuments } from '../documents/use-documents';
 import { InspectPanel } from '../inspect/InspectPanel';
 import { AssistantMessage } from './AssistantMessage';
@@ -8,8 +9,17 @@ import { Composer } from './Composer';
 import type { AssistantTurn } from './chat-state';
 import { useChat } from './use-chat';
 
-export function ChatPanel() {
-  const chat = useChat();
+export function ChatPanel({
+  selected,
+  onClearSelection,
+}: {
+  /** Documents ticked in the library; empty means search everything. */
+  selected: ReadonlySet<string>;
+  onClearSelection: () => void;
+}) {
+  const documents = useDocuments();
+  const scope = resolveScope(selected, documents.data ?? []);
+  const chat = useChat(scope.documentIds ? { documentIds: scope.documentIds } : {});
   // Store the turn's id, not the turn: it keeps updating while it streams.
   const [inspecting, setInspecting] = useState<{ turnId: string; n: number } | null>(null);
   const inspectedTurn = chat.turns.find(
@@ -24,8 +34,10 @@ export function ChatPanel() {
     (n: number) => setInspecting((current) => (current ? { ...current, n } : current)),
     [],
   );
-  const documents = useDocuments();
   const ready = (documents.data ?? []).filter((d) => d.status === 'ready');
+  const inScope = scope.documentIds
+    ? ready.filter((d) => scope.documentIds?.includes(d.id))
+    : ready;
   const scrollRef = useRef<HTMLDivElement>(null);
   const pinnedToBottom = useRef(true);
 
@@ -66,7 +78,7 @@ export function ChatPanel() {
         >
           <div className="mx-auto w-full max-w-3xl px-4 py-6">
             {chat.turns.length === 0 ? (
-              <Welcome documents={ready} onAsk={chat.send} noDocuments={noDocuments} />
+              <Welcome documents={inScope} onAsk={chat.send} noDocuments={noDocuments} />
             ) : (
               <ol className="space-y-8" aria-live="polite">
                 {chat.turns.map((turn) => (
@@ -92,6 +104,29 @@ export function ChatPanel() {
         </div>
 
         <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+          {scope.documentIds && (
+            <div className="mb-2 flex justify-center">
+              <div
+                className="flex max-w-full items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 py-1 pr-1 pl-2.5 text-xs text-teal-800 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-200"
+                title={inScope.map((d) => d.filename).join(', ')}
+              >
+                <Filter className="size-3 shrink-0" aria-hidden />
+                <span className="truncate">
+                  {scope.count === 1
+                    ? `Searching only ${inScope[0]?.filename}`
+                    : `Searching ${scope.count} of ${scope.total} documents`}
+                </span>
+                <button
+                  type="button"
+                  onClick={onClearSelection}
+                  aria-label="Search all documents"
+                  className="rounded-full p-0.5 hover:bg-teal-100 dark:hover:bg-teal-900"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            </div>
+          )}
           <Composer
             busy={chat.busy}
             disabled={noDocuments}

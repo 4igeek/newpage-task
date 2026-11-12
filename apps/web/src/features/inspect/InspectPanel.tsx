@@ -189,6 +189,11 @@ function HowAnswered({ turn }: { turn: AssistantTurn }) {
         <Row label={retrieval.rewritten ? 'Rewritten query' : 'Search query'}>
           <span className="italic">“{retrieval.query}”</span>
         </Row>
+        <Row label="Scope">
+          {turn.scopedTo === undefined
+            ? 'all documents'
+            : `${plural(turn.scopedTo, 'selected document')}`}
+        </Row>
         <Row label="Candidates">
           {plural(retrieval.stats.vectorHits, 'vector hit')},{' '}
           {plural(retrieval.stats.keywordHits, 'keyword hit')}

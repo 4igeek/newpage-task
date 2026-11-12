@@ -14,6 +14,8 @@ export interface AssistantTurn {
   role: 'assistant';
   content: string;
   status: 'retrieving' | 'streaming' | 'done' | 'error' | 'stopped';
+  /** Number of documents the search was limited to; undefined means all of them. */
+  scopedTo?: number;
   retrieval?: RetrievalEvent;
   done?: DoneEvent;
   error?: { code: string; message: string };
