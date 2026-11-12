@@ -22,6 +22,18 @@ const ConfigSchema = z.object({
   CHUNK_TARGET_TOKENS: z.coerce.number().int().positive().default(350),
   CHUNK_OVERLAP_TOKENS: z.coerce.number().int().nonnegative().default(50),
 
+  // LLM. Without a key the app still runs: retrieval works, answers explain what's missing.
+  ANTHROPIC_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  LLM_MODEL: z.string().default('claude-opus-5-5'),
+  LLM_EFFORT: z.enum(['low', 'medium', 'high']).default('low'),
+  LLM_MAX_TOKENS: z.coerce.number().int().positive().default(8000),
+
+  // Retrieval (see `pnpm eval:retrieval` for how these were chosen).
+  RETRIEVAL_CANDIDATES: z.coerce.number().int().positive().default(20),
+  RETRIEVAL_TOP_K: z.coerce.number().int().positive().default(6),
+  RETRIEVAL_MIN_SIMILARITY: z.coerce.number().min(0).max(1).default(0.5),
+  CHAT_HISTORY_TURNS: z.coerce.number().int().nonnegative().default(6),
+
   // Worker.
   WORKER_POLL_MS: z.coerce.number().int().positive().default(1000),
   JOB_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),

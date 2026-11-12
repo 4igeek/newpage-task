@@ -12,9 +12,13 @@ import type {
   DocumentRecord,
   DocumentRepository,
   Embedder,
+  LLMClient,
+  LLMRequest,
+  LLMStreamEvent,
   Logger,
   NewDocument,
 } from '../src/ports/index.js';
+import { AnswerQuestion } from '../src/services/answer-question.js';
 import { DocumentLibrary } from '../src/services/document-library.js';
 import { UploadDocument } from '../src/services/upload-document.js';
 
@@ -111,6 +115,47 @@ export function fakeVector(text: string, dimensions = 384): number[] {
   return v.map((x) => x / norm);
 }
 
+/**
+ * Scripted LLM: `complete` returns `rewriteTo` (for query rewriting) and
+ * `stream` yields `answer` in small pieces. Records every request it gets.
+ */
+export class FakeLLM implements LLMClient {
+  readonly modelId = 'fake-llm';
+  readonly requests: { kind: 'complete' | 'stream'; request: LLMRequest }[] = [];
+
+  constructor(
+    private readonly script: {
+      answer?: string;
+      rewriteTo?: string;
+      stopReason?: 'complete' | 'max_tokens' | 'refusal';
+      /** Thrown by every call. */
+      error?: Error;
+      /** Thrown by `complete` (query rewriting) only. */
+      failRewrite?: boolean;
+    } = {},
+  ) {}
+
+  async complete(request: LLMRequest) {
+    this.requests.push({ kind: 'complete', request });
+    if (this.script.error) throw this.script.error;
+    if (this.script.failRewrite) throw new Error('rewrite failed');
+    return { text: this.script.rewriteTo ?? '', usage: { inputTokens: 10, outputTokens: 5 } };
+  }
+
+  async *stream(request: LLMRequest): AsyncIterable<LLMStreamEvent> {
+    this.requests.push({ kind: 'stream', request });
+    if (this.script.error) throw this.script.error;
+    for (const piece of (this.script.answer ?? 'An answer [1].').match(/.{1,8}/gs) ?? []) {
+      yield { type: 'text', text: piece };
+    }
+    yield {
+      type: 'end',
+      usage: { inputTokens: 100, outputTokens: 20 },
+      stopReason: this.script.stopReason ?? 'complete',
+    };
+  }
+}
+
 /** Builds the real Fastify app wired to in-memory fakes. */
 export function buildTestApp(overrides: Partial<AppDeps> = {}) {
   const documents = new InMemoryDocumentRepository();
@@ -120,6 +165,22 @@ export function buildTestApp(overrides: Partial<AppDeps> = {}) {
     documents: {
       upload: new UploadDocument(documents, blobs),
       library: new DocumentLibrary(documents, blobs, silentLogger),
+    },
+    chat: {
+      answer: new AnswerQuestion(
+        {
+          retrieve: {
+            execute: async () => ({
+              chunks: [],
+              relevant: false,
+              stats: { vectorHits: 0, keywordHits: 0, topSimilarity: null, durationMs: 0 },
+            }),
+          },
+          llm: new FakeLLM(),
+          logger: silentLogger,
+        },
+        { historyTurns: 6, maxTokens: 1000 },
+      ),
     },
     settings: { maxUploadBytes: 1024 * 1024 },
     ...overrides,

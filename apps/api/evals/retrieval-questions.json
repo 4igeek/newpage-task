@@ -1,0 +1,133 @@
+{
+  "description": "Retrieval eval set for sample-docs/. A question counts as a hit at rank r if the r-th retrieved chunk is from `document` and contains `expect` (case-insensitive). Several questions deliberately use different words from the source (training vs learning, joiners vs starters) to test semantic matching.",
+  "answerable": [
+    {
+      "question": "How many days of annual leave do full-time employees get?",
+      "document": "employee-handbook.md",
+      "expect": "27 days"
+    },
+    {
+      "question": "Can I carry unused holiday over to next year?",
+      "document": "employee-handbook.md",
+      "expect": "five unused days"
+    },
+    {
+      "question": "When do carried-over leave days expire?",
+      "document": "employee-handbook.md",
+      "expect": "31 March"
+    },
+    {
+      "question": "What are the core working hours?",
+      "document": "employee-handbook.md",
+      "expect": "10:00 to 15:00"
+    },
+    {
+      "question": "Are there meetings on Fridays?",
+      "document": "employee-handbook.md",
+      "expect": "focus Fridays"
+    },
+    {
+      "question": "How much money do I get to set up my home office?",
+      "document": "employee-handbook.md",
+      "expect": "£600"
+    },
+    {
+      "question": "Do I need a doctor's note if I'm off sick for three days?",
+      "document": "employee-handbook.md",
+      "expect": "seven consecutive days"
+    },
+    {
+      "question": "How long is maternity leave?",
+      "document": "employee-handbook.md",
+      "expect": "26 weeks"
+    },
+    {
+      "question": "What's the deadline for submitting expense claims?",
+      "document": "employee-handbook.md",
+      "expect": "within 30 days"
+    },
+    {
+      "question": "Am I allowed to travel first class by train?",
+      "document": "employee-handbook.md",
+      "expect": "longer than three hours"
+    },
+    {
+      "question": "What is my annual training budget?",
+      "document": "employee-handbook.md",
+      "expect": "£1,200"
+    },
+    {
+      "question": "Which laptops can new joiners pick from?",
+      "document": "employee-handbook.md",
+      "expect": "MacBook Pro"
+    },
+    {
+      "question": "How much does the Grower plan cost?",
+      "document": "product-faq.md",
+      "expect": "£29 per month"
+    },
+    {
+      "question": "Do I need a credit card to try FieldCast?",
+      "document": "product-faq.md",
+      "expect": "No card is needed"
+    },
+    {
+      "question": "How accurate are the temperature forecasts?",
+      "document": "product-faq.md",
+      "expect": "1.2°C"
+    },
+    {
+      "question": "Does FieldCast work with John Deere?",
+      "document": "product-faq.md",
+      "expect": "John Deere Operations Center"
+    },
+    {
+      "question": "What is the API rate limit?",
+      "document": "product-faq.md",
+      "expect": "600 requests per minute"
+    },
+    {
+      "question": "If I cancel halfway through a month, do I get money back?",
+      "document": "product-faq.md",
+      "expect": "no refunds"
+    },
+    {
+      "question": "When can I contact customer support?",
+      "document": "product-faq.md",
+      "expect": "07:00 to 19:00"
+    },
+    {
+      "question": "What counts as a SEV1 incident?",
+      "document": "incident-runbook.pdf",
+      "expect": "unavailable for all customers"
+    },
+    {
+      "question": "How soon must a post-mortem be published?",
+      "document": "incident-runbook.pdf",
+      "expect": "5 working days"
+    },
+    {
+      "question": "Who gets paged if the on-call engineer doesn't respond for 15 minutes?",
+      "document": "incident-runbook.pdf",
+      "expect": "Head of Engineering"
+    },
+    {
+      "question": "How often should the status page be updated during a SEV1?",
+      "document": "incident-runbook.pdf",
+      "expect": "every 30 minutes"
+    },
+    {
+      "question": "What compensation do Estate customers get for downtime?",
+      "document": "incident-runbook.pdf",
+      "expect": "10% service credit"
+    }
+  ],
+  "unanswerable": [
+    "What is the company pension contribution?",
+    "How do I reset my FieldCast password?",
+    "What is the capital of France?",
+    "Who won the football World Cup in 2022?",
+    "What programming language is FieldCast written in?",
+    "How many employees work in the London office?"
+  ]
+}

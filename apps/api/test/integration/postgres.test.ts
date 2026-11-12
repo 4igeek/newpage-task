@@ -13,6 +13,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DefaultDocumentParser } from '../../src/adapters/document-parser.js';
 import { LocalBlobStore } from '../../src/adapters/local-blob-store.js';
 import { PgChunkRepository } from '../../src/adapters/pg-chunk-repository.js';
+import { PgChunkSearch } from '../../src/adapters/pg-chunk-search.js';
 import { PgDocumentRepository } from '../../src/adapters/pg-document-repository.js';
 import { PgJobQueue } from '../../src/adapters/pg-job-queue.js';
 import { createDatabase } from '../../src/db/client.js';
@@ -20,7 +21,7 @@ import { chunks, documents, jobs } from '../../src/db/schema.js';
 import { IngestDocument } from '../../src/services/ingest-document.js';
 import { processNextJob } from '../../src/services/run-worker.js';
 import { UploadDocument } from '../../src/services/upload-document.js';
-import { FakeEmbedder, silentLogger } from '../fakes.js';
+import { FakeEmbedder, fakeVector, silentLogger } from '../fakes.js';
 
 let container: StartedPostgreSqlContainer;
 let database: ReturnType<typeof createDatabase>;
@@ -155,5 +156,70 @@ describe('ingestion end to end', () => {
     await documentRepo.delete(document.id);
     expect(await database.db.select().from(chunks)).toHaveLength(0);
     expect(await database.db.select().from(jobs)).toHaveLength(0);
+  });
+});
+
+describe('PgChunkSearch', () => {
+  /** Creates a document with one chunk per text, embedded with fakeVector(text). */
+  async function seed(name: string, texts: string[], status: 'ready' | 'pending' = 'ready') {
+    const repo = new PgDocumentRepository(database.db);
+    const { document } = await repo.createWithIngestJob(newDoc(name));
+    await new PgChunkRepository(database.db).replaceForDocument(
+      document.id,
+      texts.map((content, ordinal) => ({
+        ordinal,
+        content,
+        tokenCount: 1,
+        embedding: fakeVector(content),
+      })),
+    );
+    await repo.setStatus(document.id, status);
+    return document.id;
+  }
+
+  it('ranks the exact vector match first, with similarity ~1', async () => {
+    await seed('h', ['annual leave policy', 'expense rules', 'laptop choices']);
+    const search = new PgChunkSearch(database.db);
+
+    const hits = await search.vectorSearch(fakeVector('expense rules'), 3);
+
+    expect(hits[0]?.content).toBe('expense rules');
+    expect(hits[0]?.score).toBeCloseTo(1, 5);
+    expect(hits[0]?.filename).toBe('h.txt');
+  });
+
+  it('keyword search matches ANY stemmed term, ranking more matches higher', async () => {
+    await seed('k', [
+      'Employees receive annual leave.',
+      'Leave requests need approval and annual planning.',
+      'Laptops are refreshed every three years.',
+    ]);
+    const search = new PgChunkSearch(database.db);
+
+    const hits = await search.keywordSearch('how much annual leave do I get?', 10);
+
+    expect(hits.map((h) => h.content)).toEqual([
+      'Employees receive annual leave.',
+      'Leave requests need approval and annual planning.',
+    ]);
+  });
+
+  it('only searches ready documents', async () => {
+    await seed('p', ['pending content about leave'], 'pending');
+    const search = new PgChunkSearch(database.db);
+
+    expect(await search.keywordSearch('leave', 10)).toEqual([]);
+    expect(await search.vectorSearch(fakeVector('pending content about leave'), 10)).toEqual([]);
+  });
+
+  it('restricts results to the requested documents', async () => {
+    const a = await seed('a', ['leave in document a']);
+    await seed('b', ['leave in document b']);
+    const search = new PgChunkSearch(database.db);
+
+    const hits = await search.keywordSearch('leave', 10, { documentIds: [a] });
+
+    expect(hits.map((h) => h.content)).toEqual(['leave in document a']);
+    expect(await search.keywordSearch('leave', 10, { documentIds: [] })).toEqual([]);
   });
 });

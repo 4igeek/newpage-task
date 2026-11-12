@@ -8,6 +8,7 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import { DomainError, type DomainErrorCode } from './domain/errors.js';
+import { type ChatRouteDeps, chatRoutes } from './routes/chat.js';
 import { type DocumentRouteDeps, documentRoutes } from './routes/documents.js';
 import { healthRoutes } from './routes/health.js';
 
@@ -20,6 +21,7 @@ import { healthRoutes } from './routes/health.js';
 export interface AppDeps {
   health: { pingDatabase(): Promise<void> };
   documents: DocumentRouteDeps;
+  chat: ChatRouteDeps;
   settings: { maxUploadBytes: number };
 }
 
@@ -30,6 +32,10 @@ const DOMAIN_ERROR_STATUS: Record<DomainErrorCode, number> = {
   FILE_TOO_LARGE: 413,
   NOT_FOUND: 404,
   NO_EXTRACTABLE_TEXT: 422,
+  LLM_NOT_CONFIGURED: 503,
+  LLM_AUTH_FAILED: 502,
+  LLM_RATE_LIMITED: 429,
+  LLM_UNAVAILABLE: 502,
 };
 
 export function buildApp(deps: AppDeps, opts: FastifyServerOptions = {}) {
@@ -62,6 +68,7 @@ export function buildApp(deps: AppDeps, opts: FastifyServerOptions = {}) {
   });
   app.register(healthRoutes(deps.health), { prefix: '/api' });
   app.register(documentRoutes(deps.documents), { prefix: '/api' });
+  app.register(chatRoutes(deps.chat), { prefix: '/api' });
 
   return app;
 }

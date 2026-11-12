@@ -96,3 +96,53 @@ export interface Logger {
   warn(obj: object, msg?: string): void;
   error(obj: object, msg?: string): void;
 }
+
+/** A chunk returned by search, with enough metadata to cite it. */
+export interface ChunkHit {
+  chunkId: string;
+  documentId: string;
+  filename: string;
+  heading: string | null;
+  pageStart: number | null;
+  pageEnd: number | null;
+  content: string;
+  /** Vector: cosine similarity (0..1). Keyword: ts_rank_cd. Not comparable across the two. */
+  score: number;
+}
+
+export interface SearchFilter {
+  /** Restrict search to these documents. Undefined means all ready documents. */
+  documentIds?: string[];
+}
+
+export interface ChunkSearch {
+  vectorSearch(embedding: number[], limit: number, filter?: SearchFilter): Promise<ChunkHit[]>;
+  keywordSearch(query: string, limit: number, filter?: SearchFilter): Promise<ChunkHit[]>;
+}
+
+export interface LLMMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface LLMRequest {
+  system: string;
+  messages: LLMMessage[];
+  maxTokens: number;
+  signal?: AbortSignal;
+}
+
+export interface LLMUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export type LLMStreamEvent =
+  | { type: 'text'; text: string }
+  | { type: 'end'; usage: LLMUsage; stopReason: 'complete' | 'max_tokens' | 'refusal' };
+
+export interface LLMClient {
+  readonly modelId: string;
+  complete(request: LLMRequest): Promise<{ text: string; usage: LLMUsage }>;
+  stream(request: LLMRequest): AsyncIterable<LLMStreamEvent>;
+}

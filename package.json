@@ -13,7 +13,8 @@
     "test": "pnpm -r test",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "test:integration": "pnpm --filter @docchat/api test:integration"
+    "test:integration": "pnpm --filter @docchat/api test:integration",
+    "eval:retrieval": "pnpm --filter @docchat/api eval:retrieval"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",

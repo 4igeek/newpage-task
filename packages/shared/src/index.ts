@@ -51,3 +51,92 @@ export const UploadResponse = z.object({
 export type UploadResponse = z.infer<typeof UploadResponse>;
 
 export const DocumentIdParams = z.object({ id: z.uuid() });
+
+// ---------------------------------------------------------------------------
+// Chat
+// ---------------------------------------------------------------------------
+
+export const ChatMessage = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().trim().min(1).max(8000),
+});
+export type ChatMessage = z.infer<typeof ChatMessage>;
+
+/**
+ * The API is stateless: the client sends the conversation each time. The
+ * server trims it to the last few turns before using it.
+ */
+export const ChatRequest = z.object({
+  messages: z
+    .array(ChatMessage)
+    .min(1)
+    .max(50)
+    .refine((m) => m.at(-1)?.role === 'user', 'The last message must be from the user.'),
+  /** Restrict answers to these documents; omit to search everything. */
+  documentIds: z.array(z.uuid()).max(100).optional(),
+});
+export type ChatRequest = z.infer<typeof ChatRequest>;
+
+export const SourceDto = z.object({
+  /** The number the answer cites, e.g. [2]. */
+  n: z.number().int(),
+  chunkId: z.uuid(),
+  documentId: z.uuid(),
+  filename: z.string(),
+  heading: z.string().nullable(),
+  pageStart: z.number().int().nullable(),
+  pageEnd: z.number().int().nullable(),
+  content: z.string(),
+  similarity: z.number().nullable(),
+  vectorRank: z.number().int().nullable(),
+  keywordRank: z.number().int().nullable(),
+});
+export type SourceDto = z.infer<typeof SourceDto>;
+
+export const AnswerOutcome = z.enum([
+  'answered',
+  /** The relevance gate found nothing related; the LLM was not called. */
+  'no_relevant_sources',
+  'refused',
+  'truncated',
+]);
+export type AnswerOutcome = z.infer<typeof AnswerOutcome>;
+
+/**
+ * Server-sent events streamed by POST /api/chat, in order:
+ * one `retrieval`, zero or more `delta`, then `done` or `error`.
+ */
+export const ChatEvent = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('retrieval'),
+    /** The query actually searched (rewritten from the question when there is history). */
+    query: z.string(),
+    rewritten: z.boolean(),
+    relevant: z.boolean(),
+    sources: z.array(SourceDto),
+    stats: z.object({
+      vectorHits: z.number().int(),
+      keywordHits: z.number().int(),
+      topSimilarity: z.number().nullable(),
+    }),
+  }),
+  z.object({ type: z.literal('delta'), text: z.string() }),
+  z.object({
+    type: z.literal('done'),
+    outcome: AnswerOutcome,
+    /** Source numbers cited in the answer that refer to a real source. */
+    citations: z.array(z.number().int()),
+    /** Citations that pointed at no source (logged as a quality signal). */
+    invalidCitations: z.array(z.number().int()),
+    model: z.string(),
+    usage: z.object({ inputTokens: z.number().int(), outputTokens: z.number().int() }),
+    timings: z.object({
+      rewriteMs: z.number(),
+      retrievalMs: z.number(),
+      firstTokenMs: z.number().nullable(),
+      totalMs: z.number(),
+    }),
+  }),
+  z.object({ type: z.literal('error'), code: z.string(), message: z.string() }),
+]);
+export type ChatEvent = z.infer<typeof ChatEvent>;

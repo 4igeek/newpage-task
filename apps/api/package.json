@@ -12,9 +12,11 @@
     "test": "vitest run test/unit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate.ts",
-    "test:integration": "vitest run test/integration"
+    "test:integration": "vitest run test/integration",
+    "eval:retrieval": "tsx evals/retrieval.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@fastify/multipart": "^10.1.8",
     "@huggingface/transformers": "^4.3.2",
     "drizzle-orm": "^0.45.4",
