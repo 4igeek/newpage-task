@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { MessagesSquare, PanelLeft } from 'lucide-react';
+import { PanelLeft } from 'lucide-react';
 import { useState } from 'react';
+import { ChatPanel } from './features/chat/ChatPanel';
 import { DocumentLibrary } from './features/documents/DocumentLibrary';
 import { api } from './lib/api';
 
@@ -29,9 +30,8 @@ export function App() {
           <DocumentLibrary onClose={() => setLibraryOpen(false)} />
         </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col items-center justify-center px-4 text-center">
-          <MessagesSquare className="size-10 text-stone-300 dark:text-stone-700" aria-hidden />
-          <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">Chat is coming next.</p>
+        <main className="flex min-w-0 flex-1 flex-col">
+          <ChatPanel />
         </main>
       </div>
     </div>

@@ -5,12 +5,15 @@
  */
 import {
   ApiError,
+  type ChatEvent,
+  type ChatRequest,
   type DocumentDto,
   DocumentListResponse,
   HealthResponse,
   UploadResponse,
 } from '@docchat/shared';
 import type { z } from 'zod';
+import { parseSse } from './sse';
 
 /** An error response from the API, with the server's error code and request ID. */
 export class ApiRequestError extends Error {
@@ -61,5 +64,17 @@ export const api = {
 
   async deleteDocument(id: string): Promise<void> {
     await send(`/documents/${id}`, { method: 'DELETE' });
+  },
+
+  /** Streams the answer as events. Aborting `signal` stops generation server-side too. */
+  async *streamChat(request: ChatRequest, signal?: AbortSignal): AsyncGenerator<ChatEvent> {
+    const res = await send('/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+      ...(signal && { signal }),
+    });
+    if (!res.body) throw new ApiRequestError(res.status, 'EMPTY_RESPONSE', 'Empty response.');
+    yield* parseSse(res.body);
   },
 };
