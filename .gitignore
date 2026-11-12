@@ -8,3 +8,6 @@ data/
 *.log
 .DS_Store
 .vite/
+
+# Personal working notes (README drafting); never committed.
+.notes/
