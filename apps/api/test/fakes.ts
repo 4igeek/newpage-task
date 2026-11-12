@@ -17,6 +17,9 @@ import type {
   LLMStreamEvent,
   Logger,
   NewDocument,
+  QueryTrace,
+  StoredTrace,
+  TraceStore,
 } from '../src/ports/index.js';
 import { AnswerQuestion } from '../src/services/answer-question.js';
 import { DocumentLibrary } from '../src/services/document-library.js';
@@ -89,6 +92,31 @@ export class InMemoryChunkRepository implements ChunkRepository {
   readonly byDocument = new Map<string, ChunkToStore[]>();
   async replaceForDocument(documentId: string, chunks: ChunkToStore[]) {
     this.byDocument.set(documentId, chunks);
+  }
+}
+
+export class InMemoryTraceStore implements TraceStore {
+  readonly traces: StoredTrace[] = [];
+  /** Set to make `record` fail, to test that tracing can't break an answer. */
+  failWith: Error | null = null;
+
+  async record(trace: QueryTrace) {
+    if (this.failWith) throw this.failWith;
+    this.traces.push({ ...trace, id: randomUUID(), createdAt: new Date() });
+  }
+  async recent(limit: number) {
+    return [...this.traces].reverse().slice(0, limit);
+  }
+  async stats() {
+    return {
+      questions: this.traces.length,
+      outcomes: {},
+      answeredWithoutCitations: 0,
+      withInvalidCitations: 0,
+      latencyMs: { p50Total: null, p95Total: null, p50FirstToken: null, p95FirstToken: null },
+      tokens: { input: 0, output: 0 },
+      avgTopSimilarity: null,
+    };
   }
 }
 
@@ -177,11 +205,13 @@ export function buildTestApp(overrides: Partial<AppDeps> = {}) {
             }),
           },
           llm: new FakeLLM(),
+          traces: new InMemoryTraceStore(),
           logger: silentLogger,
         },
         { historyTurns: 6, maxTokens: 1000 },
       ),
     },
+    traces: new InMemoryTraceStore(),
     settings: { maxUploadBytes: 1024 * 1024 },
     ...overrides,
   });

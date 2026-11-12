@@ -7,6 +7,7 @@ import { LocalBlobStore } from './adapters/local-blob-store.js';
 import { LocalEmbedder } from './adapters/local-embedder.js';
 import { PgChunkSearch } from './adapters/pg-chunk-search.js';
 import { PgDocumentRepository } from './adapters/pg-document-repository.js';
+import { PgTraceStore } from './adapters/pg-trace-store.js';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { createDatabase } from './db/client.js';
@@ -34,6 +35,7 @@ if (!config.ANTHROPIC_API_KEY) {
 }
 
 const documents = new PgDocumentRepository(database.db);
+const traces = new PgTraceStore(database.db);
 const blobs = new LocalBlobStore(config.BLOB_DIR);
 const retrieve = new Retrieve(embedder, new PgChunkSearch(database.db), {
   candidates: config.RETRIEVAL_CANDIDATES,
@@ -50,10 +52,11 @@ const app = buildApp(
     },
     chat: {
       answer: new AnswerQuestion(
-        { retrieve, llm, logger },
+        { retrieve, llm, traces, logger },
         { historyTurns: config.CHAT_HISTORY_TURNS, maxTokens: config.LLM_MAX_TOKENS },
       ),
     },
+    traces,
     settings: { maxUploadBytes: config.MAX_UPLOAD_MB * 1024 * 1024 },
   },
   { loggerInstance: logger },

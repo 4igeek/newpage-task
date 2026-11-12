@@ -4,7 +4,8 @@
  * (local disk -> S3, local model -> hosted embeddings) means writing a new
  * adapter; no service changes.
  */
-import type { DocumentStatus } from '@docchat/shared';
+import type { DocumentStatus, TraceOutcome, TraceStats } from '@docchat/shared';
+import type { TraceSourceRecord } from '../db/schema.js';
 import type { ChunkDraft } from '../domain/chunker.js';
 import type { SupportedMimeType } from '../domain/file-types.js';
 import type { ParsedDocument } from '../domain/sections.js';
@@ -145,4 +146,38 @@ export interface LLMClient {
   readonly modelId: string;
   complete(request: LLMRequest): Promise<{ text: string; usage: LLMUsage }>;
   stream(request: LLMRequest): AsyncIterable<LLMStreamEvent>;
+}
+
+/** A completed question, as recorded for observability. */
+export interface QueryTrace {
+  requestId: string;
+  question: string;
+  query: string;
+  rewritten: boolean;
+  documentIds: string[] | null;
+  outcome: TraceOutcome;
+  errorCode: string | null;
+  model: string;
+  answer: string;
+  sources: TraceSourceRecord[];
+  topSimilarity: number | null;
+  citations: number[];
+  invalidCitations: number[];
+  inputTokens: number;
+  outputTokens: number;
+  rewriteMs: number;
+  retrievalMs: number | null;
+  firstTokenMs: number | null;
+  totalMs: number;
+}
+
+export interface StoredTrace extends QueryTrace {
+  id: string;
+  createdAt: Date;
+}
+
+export interface TraceStore {
+  record(trace: QueryTrace): Promise<void>;
+  recent(limit: number): Promise<StoredTrace[]>;
+  stats(since: Date): Promise<Omit<TraceStats, 'since'>>;
 }

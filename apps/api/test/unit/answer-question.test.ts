@@ -4,7 +4,7 @@ import { LLMError } from '../../src/domain/errors.js';
 import type { ChunkHit, ChunkSearch } from '../../src/ports/index.js';
 import { AnswerQuestion, NO_RELEVANT_SOURCES_ANSWER } from '../../src/services/answer-question.js';
 import { Retrieve } from '../../src/services/retrieve.js';
-import { FakeEmbedder, FakeLLM, silentLogger } from '../fakes.js';
+import { FakeEmbedder, FakeLLM, InMemoryTraceStore, silentLogger } from '../fakes.js';
 
 const hit = (n: number, score: number): ChunkHit => ({
   chunkId: `00000000-0000-0000-0000-00000000000${n}`,
@@ -38,11 +38,12 @@ function setup(opts: { llm?: FakeLLM; similarity?: number } = {}) {
     topK: 5,
     minSimilarity: 0.5,
   });
+  const traces = new InMemoryTraceStore();
   const answer = new AnswerQuestion(
-    { retrieve, llm, logger: silentLogger },
+    { retrieve, llm, traces, logger: silentLogger },
     { historyTurns: 2, maxTokens: 1000 },
   );
-  return { answer, llm, search };
+  return { answer, llm, search, traces };
 }
 
 async function run(answer: AnswerQuestion, request: ChatRequest) {
@@ -180,5 +181,78 @@ describe('AnswerQuestion', () => {
     const { answer } = setup({ llm: new FakeLLM({ stopReason }) });
     const { last } = await run(answer, ask('q'));
     expect(last).toMatchObject({ type: 'done', outcome });
+  });
+});
+
+describe('AnswerQuestion tracing', () => {
+  it('records a trace for an answered question, including which sources were cited', async () => {
+    const { answer, traces } = setup({ llm: new FakeLLM({ answer: 'Yes [2], and [9].' }) });
+
+    const events: ChatEvent[] = [];
+    for await (const e of answer.execute(ask('How much leave?'), { requestId: 'req-42' })) {
+      events.push(e);
+    }
+
+    expect(events.at(-1)).toMatchObject({ type: 'done', requestId: 'req-42' });
+    expect(traces.traces).toHaveLength(1);
+    const [trace] = traces.traces;
+    expect(trace).toMatchObject({
+      requestId: 'req-42',
+      question: 'How much leave?',
+      outcome: 'answered',
+      answer: 'Yes [2], and [9].',
+      citations: [2],
+      invalidCitations: [9],
+      inputTokens: 100,
+      outputTokens: 20,
+    });
+    expect(trace?.sources.map((s) => [s.n, s.cited])).toEqual([
+      [1, false],
+      [2, true],
+    ]);
+  });
+
+  it('records gated and failed questions too', async () => {
+    const gated = setup({ similarity: 0.2 });
+    await run(gated.answer, ask('off topic'));
+    expect(gated.traces.traces[0]).toMatchObject({
+      outcome: 'no_relevant_sources',
+      inputTokens: 0,
+    });
+
+    const failed = setup({
+      llm: new FakeLLM({ error: new LLMError('LLM_RATE_LIMITED', 'slow down') }),
+    });
+    await run(failed.answer, ask('q'));
+    expect(failed.traces.traces[0]).toMatchObject({
+      outcome: 'error',
+      errorCode: 'LLM_RATE_LIMITED',
+    });
+  });
+
+  it('records an aborted trace when the user stops mid-answer', async () => {
+    const { answer, traces } = setup({
+      llm: new FakeLLM({ answer: 'A long answer that streams.' }),
+    });
+    const controller = new AbortController();
+
+    for await (const e of answer.execute(ask('q'), { signal: controller.signal })) {
+      if (e.type === 'delta') {
+        controller.abort();
+        break; // what the route does when the client disconnects
+      }
+    }
+
+    expect(traces.traces).toHaveLength(1);
+    expect(traces.traces[0]?.outcome).toBe('aborted');
+  });
+
+  it('still delivers the answer if recording the trace fails', async () => {
+    const { answer, traces } = setup();
+    traces.failWith = new Error('database down');
+
+    const { last } = await run(answer, ask('q'));
+
+    expect(last).toMatchObject({ type: 'done', outcome: 'answered' });
   });
 });

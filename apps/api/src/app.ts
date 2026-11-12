@@ -8,9 +8,11 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import { DomainError, type DomainErrorCode } from './domain/errors.js';
+import type { TraceStore } from './ports/index.js';
 import { type ChatRouteDeps, chatRoutes } from './routes/chat.js';
 import { type DocumentRouteDeps, documentRoutes } from './routes/documents.js';
 import { healthRoutes } from './routes/health.js';
+import { traceRoutes } from './routes/traces.js';
 
 /**
  * Everything the HTTP layer needs from the outside world. Routes depend on
@@ -22,6 +24,7 @@ export interface AppDeps {
   health: { pingDatabase(): Promise<void> };
   documents: DocumentRouteDeps;
   chat: ChatRouteDeps;
+  traces: TraceStore;
   settings: { maxUploadBytes: number };
 }
 
@@ -69,6 +72,7 @@ export function buildApp(deps: AppDeps, opts: FastifyServerOptions = {}) {
   app.register(healthRoutes(deps.health), { prefix: '/api' });
   app.register(documentRoutes(deps.documents), { prefix: '/api' });
   app.register(chatRoutes(deps.chat), { prefix: '/api' });
+  app.register(traceRoutes(deps.traces), { prefix: '/api' });
 
   return app;
 }

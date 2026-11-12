@@ -16,8 +16,10 @@ import { PgChunkRepository } from '../../src/adapters/pg-chunk-repository.js';
 import { PgChunkSearch } from '../../src/adapters/pg-chunk-search.js';
 import { PgDocumentRepository } from '../../src/adapters/pg-document-repository.js';
 import { PgJobQueue } from '../../src/adapters/pg-job-queue.js';
+import { PgTraceStore } from '../../src/adapters/pg-trace-store.js';
 import { createDatabase } from '../../src/db/client.js';
-import { chunks, documents, jobs } from '../../src/db/schema.js';
+import { chunks, documents, jobs, queryTraces } from '../../src/db/schema.js';
+import type { QueryTrace } from '../../src/ports/index.js';
 import { IngestDocument } from '../../src/services/ingest-document.js';
 import { processNextJob } from '../../src/services/run-worker.js';
 import { UploadDocument } from '../../src/services/upload-document.js';
@@ -38,7 +40,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await database.db.execute(sql`truncate ${documents} cascade`);
+  await database.db.execute(sql`truncate ${documents}, ${queryTraces} cascade`);
 });
 
 const newDoc = (hash: string) => ({
@@ -221,5 +223,77 @@ describe('PgChunkSearch', () => {
 
     expect(hits.map((h) => h.content)).toEqual(['leave in document a']);
     expect(await search.keywordSearch('leave', 10, { documentIds: [] })).toEqual([]);
+  });
+});
+
+describe('PgTraceStore', () => {
+  const trace = (overrides: Partial<QueryTrace>): QueryTrace => ({
+    requestId: 'r',
+    question: 'q',
+    query: 'q',
+    rewritten: false,
+    documentIds: null,
+    outcome: 'answered',
+    errorCode: null,
+    model: 'm',
+    answer: 'a [1]',
+    sources: [],
+    topSimilarity: 0.7,
+    citations: [1],
+    invalidCitations: [],
+    inputTokens: 100,
+    outputTokens: 10,
+    rewriteMs: 0,
+    retrievalMs: 10,
+    firstTokenMs: 500,
+    totalMs: 1000,
+    ...overrides,
+  });
+
+  it('stores traces and returns the most recent first', async () => {
+    const store = new PgTraceStore(database.db);
+    await store.record(trace({ requestId: 'first' }));
+    await store.record(trace({ requestId: 'second', documentIds: [crypto.randomUUID()] }));
+
+    const recent = await store.recent(10);
+
+    expect(recent.map((t) => t.requestId)).toEqual(['second', 'first']);
+    expect(recent[0]?.documentIds).toHaveLength(1);
+  });
+
+  it('aggregates outcomes, quality signals, latency percentiles and tokens', async () => {
+    const store = new PgTraceStore(database.db);
+    await store.record(trace({ totalMs: 1000, firstTokenMs: 400 }));
+    await store.record(trace({ totalMs: 3000, firstTokenMs: 800, citations: [] }));
+    await store.record(trace({ totalMs: 2000, invalidCitations: [9] }));
+    await store.record(
+      trace({
+        outcome: 'no_relevant_sources',
+        totalMs: 10,
+        firstTokenMs: null,
+        inputTokens: 0,
+        outputTokens: 0,
+        citations: [],
+      }),
+    );
+
+    const stats = await store.stats(new Date(Date.now() - 60_000));
+
+    expect(stats).toMatchObject({
+      questions: 4,
+      outcomes: { answered: 3, no_relevant_sources: 1 },
+      answeredWithoutCitations: 1,
+      withInvalidCitations: 1,
+      tokens: { input: 300, output: 30 },
+    });
+    expect(stats.latencyMs.p50Total).toBe(1500);
+    // The gated question never reached the model, so it's excluded from first-token latency.
+    expect(stats.latencyMs.p50FirstToken).toBe(500);
+  });
+
+  it('only counts traces inside the time window', async () => {
+    const store = new PgTraceStore(database.db);
+    await store.record(trace({}));
+    expect((await store.stats(new Date(Date.now() + 60_000))).questions).toBe(0);
   });
 });

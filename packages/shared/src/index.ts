@@ -129,6 +129,8 @@ export const ChatEvent = z.discriminatedUnion('type', [
     /** Citations that pointed at no source (logged as a quality signal). */
     invalidCitations: z.array(z.number().int()),
     model: z.string(),
+    /** Correlates this answer with server logs and its stored trace. */
+    requestId: z.string(),
     usage: z.object({ inputTokens: z.number().int(), outputTokens: z.number().int() }),
     timings: z.object({
       rewriteMs: z.number(),
@@ -140,3 +142,82 @@ export const ChatEvent = z.discriminatedUnion('type', [
   z.object({ type: z.literal('error'), code: z.string(), message: z.string() }),
 ]);
 export type ChatEvent = z.infer<typeof ChatEvent>;
+
+// ---------------------------------------------------------------------------
+// Observability: query traces
+// ---------------------------------------------------------------------------
+
+/** Every way a question can end. `aborted` = the user stopped it; `error` = it failed. */
+export const TraceOutcome = z.enum([...AnswerOutcome.options, 'error', 'aborted']);
+export type TraceOutcome = z.infer<typeof TraceOutcome>;
+
+export const TraceDto = z.object({
+  id: z.uuid(),
+  requestId: z.string(),
+  createdAt: z.iso.datetime(),
+  question: z.string(),
+  query: z.string(),
+  rewritten: z.boolean(),
+  documentIds: z.array(z.uuid()).nullable(),
+  outcome: TraceOutcome,
+  errorCode: z.string().nullable(),
+  model: z.string(),
+  answer: z.string(),
+  sources: z.array(
+    z.object({
+      n: z.number().int(),
+      chunkId: z.uuid(),
+      documentId: z.uuid(),
+      filename: z.string(),
+      heading: z.string().nullable(),
+      similarity: z.number().nullable(),
+      vectorRank: z.number().int().nullable(),
+      keywordRank: z.number().int().nullable(),
+      cited: z.boolean(),
+    }),
+  ),
+  topSimilarity: z.number().nullable(),
+  citations: z.array(z.number().int()),
+  invalidCitations: z.array(z.number().int()),
+  inputTokens: z.number().int(),
+  outputTokens: z.number().int(),
+  rewriteMs: z.number().int(),
+  retrievalMs: z.number().int().nullable(),
+  firstTokenMs: z.number().int().nullable(),
+  totalMs: z.number().int(),
+});
+export type TraceDto = z.infer<typeof TraceDto>;
+
+export const TraceListQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+export const TraceListResponse = z.object({ traces: z.array(TraceDto) });
+
+export const TraceStatsQuery = z.object({
+  hours: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 30)
+    .default(24),
+});
+
+/** Aggregate health of the Q&A pipeline over a time window. */
+export const TraceStats = z.object({
+  since: z.iso.datetime(),
+  questions: z.number().int(),
+  outcomes: z.record(z.string(), z.number().int()),
+  /** Answers that cite nothing: the cheapest signal of an ungrounded answer. */
+  answeredWithoutCitations: z.number().int(),
+  /** Answers that cited a source number the model was never given. */
+  withInvalidCitations: z.number().int(),
+  latencyMs: z.object({
+    p50Total: z.number().nullable(),
+    p95Total: z.number().nullable(),
+    p50FirstToken: z.number().nullable(),
+    p95FirstToken: z.number().nullable(),
+  }),
+  tokens: z.object({ input: z.number().int(), output: z.number().int() }),
+  avgTopSimilarity: z.number().nullable(),
+});
+export type TraceStats = z.infer<typeof TraceStats>;

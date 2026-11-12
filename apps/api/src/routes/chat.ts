@@ -33,7 +33,10 @@ export const chatRoutes =
       const send = (event: ChatEvent) => reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
 
       try {
-        for await (const event of answer.execute(req.body, controller.signal)) {
+        for await (const event of answer.execute(req.body, {
+          signal: controller.signal,
+          requestId: req.id,
+        })) {
           if (controller.signal.aborted) break;
           send(event);
         }

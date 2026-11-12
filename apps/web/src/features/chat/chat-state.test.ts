@@ -23,6 +23,7 @@ const done = (outcome: 'answered' | 'no_relevant_sources' = 'answered') => ({
   citations: [],
   invalidCitations: [],
   model: 'm',
+  requestId: 'req-1',
   usage: { inputTokens: 1, outputTokens: 1 },
   timings: { rewriteMs: 0, retrievalMs: 1, firstTokenMs: 2, totalMs: 3 },
 });

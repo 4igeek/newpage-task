@@ -1,10 +1,13 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   customType,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
+  real,
   text,
   timestamp,
   uuid,
@@ -103,4 +106,54 @@ export const jobs = pgTable(
     ...timestamps,
   },
   (t) => [index('jobs_claim_idx').on(t.status, t.runAfter)],
+);
+
+/** Per-source detail kept on a trace: enough to see what retrieval returned and why. */
+export interface TraceSourceRecord {
+  n: number;
+  chunkId: string;
+  documentId: string;
+  filename: string;
+  heading: string | null;
+  similarity: number | null;
+  vectorRank: number | null;
+  keywordRank: number | null;
+  cited: boolean;
+}
+
+/**
+ * One row per question asked: the observability record. Answers how well
+ * retrieval and generation are doing over time (gate rate, invalid citations,
+ * latency percentiles, token spend) without re-running anything.
+ *
+ * It stores the question and answer text, which in production is user data:
+ * it needs a retention policy and access controls (see README).
+ */
+export const queryTraces = pgTable(
+  'query_traces',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    requestId: text('request_id').notNull(),
+    question: text('question').notNull(),
+    query: text('query').notNull(),
+    rewritten: boolean('rewritten').notNull(),
+    /** Null means all documents were searched. */
+    documentIds: uuid('document_ids').array(),
+    outcome: text('outcome').notNull(),
+    errorCode: text('error_code'),
+    model: text('model').notNull(),
+    answer: text('answer').notNull(),
+    sources: jsonb('sources').$type<TraceSourceRecord[]>().notNull(),
+    topSimilarity: real('top_similarity'),
+    citations: integer('citations').array().notNull(),
+    invalidCitations: integer('invalid_citations').array().notNull(),
+    inputTokens: integer('input_tokens').notNull(),
+    outputTokens: integer('output_tokens').notNull(),
+    rewriteMs: integer('rewrite_ms').notNull(),
+    retrievalMs: integer('retrieval_ms'),
+    firstTokenMs: integer('first_token_ms'),
+    totalMs: integer('total_ms').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('query_traces_created_at_idx').on(t.createdAt)],
 );

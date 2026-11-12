@@ -221,6 +221,9 @@ function HowAnswered({ turn }: { turn: AssistantTurn }) {
               {done.usage.inputTokens.toLocaleString()} in ·{' '}
               {done.usage.outputTokens.toLocaleString()} out
             </Row>
+            <Row label="Request ID">
+              <code className="text-xs break-all select-all">{done.requestId}</code>
+            </Row>
             {done.invalidCitations.length > 0 && (
               <Row label="Invalid citations">
                 <span className="text-red-600 dark:text-red-400">
