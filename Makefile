@@ -1,4 +1,4 @@
-.PHONY: up down logs dev db test test-integration eval lint typecheck check format
+.PHONY: up down logs dev db test test-integration eval eval-answers lint typecheck check format
 
 up:        ## Build and start the whole stack (http://localhost:8080)
 	docker compose up --build -d
@@ -14,8 +14,10 @@ test:
 	pnpm test
 test-integration:  ## Needs Docker (starts a throwaway pgvector container)
 	pnpm test:integration
-eval:      ## Retrieval quality report (needs Docker; no API key)
+eval:      ## Retrieval quality report (needs Docker; no API key, free)
 	pnpm eval:retrieval
+eval-answers:  ## Answer quality report graded by Claude (needs Docker + API key; ~$0.45)
+	pnpm eval:answers
 lint:
 	pnpm lint
 typecheck:
