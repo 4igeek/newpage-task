@@ -332,7 +332,23 @@ Due to the nature of the project (i.e. the shared Zod contract), a monorepo make
 
 ## Engineering standards followed (and skipped)
 
-<!-- TODO(you) -->
+The standard practice that I followed in this project is the same for all my projects. I have been working full-time with AI tools (such as Cursor and Claude Code) for well over a year now. I've put some heavy business logic into production applications (including subscription mechanisms for a site with over 30 features) by following the principle I alluded to earlier: break tasks down into bite-size, testable chunks, then review and test before pushing.
+
+### Two kinds of tests
+
+It was in implementing two types of test that I was able to catch one of the bugs that Claude introduced. While the unit tests were showing success, the integration tests found the issue where every document was coming back with 0 chunks. It was only after I ran the integration tests that this issue was spotted (and resolved).
+
+This is down to what each of the tests actually proves. Unit tests test logic where the database isn't involved (chunking, prompts and so on), whereas the integration tests are there for the SQL that the unit tests can't see. Between them, they cover both layers.
+
+`pnpm test` runs the unit tests in Node only, against in-memory fakes, so it finishes in seconds and needs nothing but pnpm to be installed. `pnpm test:integration` needs Docker: it starts a throwaway Postgres container, runs the migrations against it, and only then runs the tests. So the integration tests are more complex and take more time.
+
+### Skipped: authentication
+
+The one thing that I classed as out of scope for this project was authentication. I'm not a fan of making systems that don't have auth on them, but due to the time constraints on this project, the decision was made to keep this as a small prototype where auth can be added at a later date if required. Adding auth would be the next step.
+
+### Skipped: end-to-end browser tests
+
+There are no automated end-to-end tests that use the app in a real browser, the way a user would. These would be worth adding, because otherwise nothing would catch the UI breaking.
 
 ## Productionising on AWS / GCP / Azure / Cloudflare
 
