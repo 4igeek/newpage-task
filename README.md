@@ -306,7 +306,35 @@ Storing traces is a privacy and security risk, as users may include personal or 
 
 ## How I used AI tools
 
-<!-- TODO(you): CLAUDE.md is the conventions file the assistant follows. -->
+I worked with Claude Code to produce the application. Initial discussion and ideation happened first. We made a plan, and then implemented the plan setp-by-step, testing as we went.
+
+How I work personally with AI is I let it make changes to my local branch, so I can see the diffs and check the code. I can spin it up and test out the last iteration of the implementation before committing the code and moving on. This ensures everything is checked and tested before moving on to the next step: nothing is committed before I've reviewed and tested it. I personally feel this is the best way to work with AI when producing code.
+
+In the repo there is a file called `CLAUDE.md`, which is the document Claude loads at the start of every session. Inside that document I define the architecture, workflows and rules for Claude to follow while it is implementing the code.
+
+Having a `CLAUDE.md` file in the repo is extremely useful, not only for me, but for other people who may potentially be adding to the project. Inside that document we can all define rules that shape behaviour, and in doing so, we all benefit.
+
+Seeing that the conversation isn't carried between sessions, this `CLAUDE.md` file is a lifeline of some sort of memory that the agent can use to ensure consistency in its work.
+
+Claude's own memory notes about me are private, whereas the data in `CLAUDE.md` is shared to all who have access to the project.
+
+During development, Claude used the command `git mv`, which staged one of the files on my local branch without my knowing. When I committed, only that one file went into the commit, so I committed the other 12 files separately and ended up with two commits with the same message. When I went to check the work, I noticed this error. I undid both commits and committed all 13 files together, as they should have been.
+
+After that error, and a brief discussion with Claude, it updated its memory so that it never touches git staging again: it changes files, and I stage and commit everything myself.
+
+Other issues came up along the way. I found a Drizzle bug while running the tests against a real Postgres database: a query compared each chunk's document ID with the chunk's own ID, so every document showed 0 chunks, while the unit tests with a fake database were passing. Another issue was that a planned change silently wasn't applied, down to the formatter reshaping the code Claude was editing; lint warnings about unused imports gave it away. Other issues were ones you couldn't see in the code, which we caught by taking screenshots in a real browser: for example, the phone menu's close button overlapped the document count, and a "not found" answer showed a confusing "Model: none, 0 tokens". For the rate-limiting implementation, the plugin's usual setup would have shown users a 500 (server error) when they hit the limit, whereas a 429 (too many requests) is the right response.
+
+### Do's
+
+When it comes to working with AI, you need to make sure the task you are giving it is appropriate. In my experience, the longer an AI agent runs for, or the closer it gets to the end of its context window, the more it starts bending the rules to get the implementation in place. I made a plan with Claude, and we split the work into six stages. So the initial plan was a task, and then each of the steps was another task, rather than one big chunk of work. We made sure that each step was a realistic task for an agent to reliably implement.
+
+Another important part is exploring the logic before asking for changes. Some may assume they know what is happening in the code and give confusing instructions, due to their ignorance of the code. The danger is that the LLM tries to fill the gaps with assumptions, and if that happens, you've now got bad code in the project.
+
+### Don'ts
+
+Personally, I feel that there is a real danger in just opening a project and treating the AI agent as a magic genie who can do all your work for you. AI should be used to investigate, plan and implement excellent solutions. Only the developer knows fully what the requirements are; the agent is just assuming. The more ambiguity that is introduced, the less accurate the outputs are, and the more likely the codebase is to drift into a confusing state. So my don't would be: don't ask an LLM to do anything you don't understand yourself. Use it to explore and plan first, so that by the time it implements anything, you understand what it's doing and why.
+
+Another would be not to blindly trust its outputs. Every bit of code produced needs to be reviewed and tested before committing and moving on. AI is a good coding buddy, not an authority on the project.
 
 ## What I'd do differently with more time
 
