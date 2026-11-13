@@ -352,7 +352,47 @@ There are no automated end-to-end tests that use the app in a real browser, the 
 
 ## Productionising on AWS / GCP / Azure / Cloudflare
 
-<!-- TODO(you) -->
+I understand you use AWS, so I would pick AWS. Not just for that reason, but because AWS is the only cloud platform that I have worked with in the past.
+
+### Frontend
+
+I would put the built files into an S3 bucket, and then put CloudFront in front of it, so the site has HTTPS, a normal domain and caching. The API stays as a separate service, and CloudFront forwards `/api` to it, the way nginx does now.
+
+### API and worker
+
+I would run the Docker containers on ECS with Fargate. The API sits behind a load balancer, and the worker has no public service and can be scaled independently. Fargate runs the containers without any servers to manage.
+
+### Database
+
+This would be deployed to RDS for PostgreSQL, where the pgvector extension is available. Aurora PostgreSQL is also an option if I want a cluster with replicas. Both can run `CREATE EXTENSION vector`, so I don't need to install pgvector manually.
+
+### Uploaded files
+
+S3: write a new `BlobStore` adapter and swap it in (see [File storage: local now, S3 later](#file-storage-local-now-s3-later)).
+
+### Secrets
+
+These would live in AWS Secrets Manager. The ECS task pulls the Anthropic key and the database password from there when the container starts, and then passes them through as environment variables. There is also Parameter Store, which can hold encrypted values too, but Secrets Manager can also rotate the database password automatically.
+
+### Logs and alerts
+
+I would send the container logs to CloudWatch Logs. ECS already collects what the API and worker print (lines of JSON), so I can count error lines. A CloudWatch alarm watches that count and notifies me of any issues via email or Slack when it spikes. The per-question traces stay in Postgres on RDS.
+
+### Scaling
+
+The API would scale with requests and traffic; the workers would scale with workload. So if the chat started slowing down, that would be a good indication that the API was clogging up. If, during uploads, the document ingestion was slow, that would mean I need to scale the workers.
+
+AWS would automatically add and remove these containers. For the workers, the number to watch is how many jobs are currently queued. A small check would publish that number to CloudWatch, and when it reaches a certain threshold, new containers are spun up. If it drops, they're removed.
+
+### Deployment
+
+Once the code is pushed and the tests pass, GitHub Actions builds the image, pushes it to ECR, and then tells both ECS services to roll out the new image. The API and the worker stay the same image with different commands, so one push updates both, and ECS replaces the old containers with new ones.
+
+Before the rollout, I need to run the migrations as a one-off ECS task, and wait for that to finish before rolling out the API and the worker. If the new code depends on schema changes and the containers start first, they will query a database that is missing the new tables or columns, and fail. Running this as one task also keeps the API and the worker from trying to migrate at the same time.
+
+### Before going live
+
+Authentication would need adding first (see [Skipped: authentication](#skipped-authentication)), and traces would need restricting to admins, with a retention policy (see [Observability](#observability)).
 
 ## How I used AI tools
 
