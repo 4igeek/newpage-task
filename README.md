@@ -294,7 +294,41 @@ Storing traces is a privacy and security risk, as users may include personal or 
 
 ## Key technical decisions
 
-<!-- TODO(you): link to docs/adr/*. -->
+If you're interested in the decisions that were made surrounding the RAG logic (chunking, embeddings, the vector database, retrieval, the LLM and the lack of an orchestration framework), then please take a look at [RAG / LLM approach and decisions](#rag--llm-approach-and-decisions).
+
+### Option 1: chat with your docs
+
+I chose Option 1 because the brief specifically said that a solid solution was better than a complex one, and it allowed for a simple but elegant solution. Option 2 would have been more complex. Option 1 has a core AI principle (RAG) at its heart, so it was a good opportunity to showcase my understanding and some of my skills.
+
+### TypeScript across the whole stack
+
+When planning the work, I wanted to write the project in TypeScript, as this is the language I am most comfortable with, and it allows the entire stack to be written in the same language. I also share the Zod schemas between the web app and the server, which can only be done when writing in the same language. I like working with TypeScript because it is good at spotting errors. While Python does have a bigger ecosystem for AI/RAG, the requirements for this task were such that I feel TypeScript was the best choice given the criteria.
+
+### File storage: local now, S3 later
+
+To save having too many secrets for the assessors, the decision to leave out S3 integration was made, but it was still planned for. Due to the nature of this project, sending files to S3 would be overkill, but it would 100% be necessary if this were deployed to production. Storing the files locally is good for demos.
+
+The upload service talks to the `BlobStore` interface, not to the file system directly. The local disk is just one adapter behind that interface, so to move to S3 I only need to write a new adapter and switch it out in the composition root. An S3 adapter would implement `put`, `get` and `delete` (object key = the file's hash), and then I'd change the two places it's constructed (`main.ts` and `worker.ts`). `UploadDocument`, the routes and the worker logic remain the same.
+
+### Background processing for uploads
+
+When a document is sent off to be processed, the embeddings take a little while. Holding the request open while slow CPU work runs (work that may fail and need retrying) is not a good design choice. This processing needs to be asynchronous, to allow the user to carry on with what they were doing while it's processed. Without this, a client disconnect, proxy timeout or API restart would drop in-request work, with no record of what needs to be done to recover.
+
+### A job queue in Postgres
+
+There is a `jobs` table, which is this record of what needs to be done. The jobs table stays in Postgres so that the document and its ingestion job are committed in one transaction, without the need for adding Redis or SQS. For a small assessment project, those would be overkill.
+
+I'd move the queue to SQS or Redis when the job volume became high enough that the queue traffic starts to slow down Postgres for everything else, like answering questions.
+
+### A Fastify API and a React SPA, not Next.js
+
+There are a number of things going on. The UI is a static SPA; the real work is done in a Fastify API that embeds each question and then streams the answer, and in a separate worker that parses and embeds uploads. Both of these ship inside one image. If I'd opted for Next.js, it would own the pages, and the API and worker would still have to sit beside it. Parsing uploads, loading the embedding model and streaming answers are not page rendering, so Next.js would not remove those processes. It would only pull a static UI into the same framework as the API, which isn't needed: the browser is a client of the shared contract, and nginx already serves it.
+
+Next.js would have been the better choice if this were mostly a static website: it is particularly good at helping search engines find pages. It's also suited to apps that aren't expected to have a logic-heavy backend, a worker or long streams, none of which is true here.
+
+### One repository
+
+Due to the nature of the project (i.e. the shared Zod contract), a monorepo makes sense in this scenario. It also means there's one deliverable for the project.
 
 ## Engineering standards followed (and skipped)
 
