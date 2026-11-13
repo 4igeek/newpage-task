@@ -26,6 +26,8 @@ docker compose up --build -d      # or: make up
 
 Open **http://localhost:8080** and upload the files in [`sample-docs/`](sample-docs/) (a fictional company's handbook, product FAQ and a PDF runbook) to try it.
 
+To see the prompt-injection guardrail, upload [`docs/demo/injection-test.md`](docs/demo/injection-test.md) and ask _"When does the Bristol office open?"_. The file contains an instruction to reply only with "HACKED"; the answer ignores it. (It's kept out of `sample-docs/` because the evals ingest everything in that folder.)
+
 The first build takes a few minutes: the embedding model (~130 MB) is downloaded into the image so containers start without network access. Without an API key the app still runs: retrieval works and the chat shows the sources it would have sent to the model.
 
 ### Local development
@@ -127,6 +129,7 @@ apps/web            React + Vite frontend (features/documents, chat, inspect)
 packages/shared     Zod schemas: the API contract used by both apps
 sample-docs         Demo corpus
 docs/screenshots    Screenshots of the running app
+docs/demo           Prompt-injection test file
 ```
 
 ### API
