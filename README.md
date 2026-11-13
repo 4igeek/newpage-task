@@ -428,7 +428,26 @@ Another would be not to blindly trust its outputs. Every bit of code produced ne
 
 ## What I'd do differently with more time
 
-<!-- TODO(you) -->
+### A fuller evaluation
+
+This project hasn't benefitted from a full evaluation. I only ran 30 evaluation questions (24 of them answerable), and that isn't large or hard enough to provide accurate data. If I had more time on this, I would design some documents and make sure the evaluation covers far more cases.
+
+This comes first because the current eval is giving really high results (92% to 100%), so it can't tell me whether the setup has improved at all if I change it. To fix this, I need to add harder questions that the system might get wrong, such as ones with codes or product names; then a real improvement would show up as a higher score.
+
+### Other improvements
+
+- **Use a different model for grading.** Claude Opus both answers the questions and does the grading, so it could be biased (see [Quality](#quality)).
+- **Run the evaluation a number of times.** LLMs are non-deterministic: a correct answer today may not be a correct answer tomorrow.
+- **Tune the chunk size.** I didn't test other sizes when choosing 350; I'd tune it with the eval (see [Chunking](#chunking)).
+- **Add authentication.** It was left out of scope for this prototype, and it would be the next step (see [Skipped: authentication](#skipped-authentication)).
+
+### What I'd do differently in how I worked
+
+During this build, every bug that was introduced was spotted before the code was committed. That doesn't help with the quality of the data and responses, though. The evaluations were only put in later in the implementation; if I had improved that data early on, I could have tuned the chunk size instead of reasoning about it.
+
+The initial part of this codebase was committed in one big chunk. This was done because I wanted a certain level of a proven system before making the first commit: I wanted document upload and ingestion to be the first thing that went in. In hindsight, this could have been split down further.
+
+Another thing I could have improved on was storing the Playwright scripts Claude used to check the app, instead of letting them expire in its scratch pad. This would have helped cover the end-to-end testing that is currently lacking in the project.
 
 ## Screenshots
 
