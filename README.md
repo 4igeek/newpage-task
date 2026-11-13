@@ -415,11 +415,7 @@ How I work personally with AI is I let it make changes to my local branch, so I 
 
 In the repo there is a file called `CLAUDE.md`, which is the document Claude loads at the start of every session. Inside that document I define the architecture, workflows and rules for Claude to follow while it is implementing the code.
 
-Having a `CLAUDE.md` file in the repo is extremely useful, not only for me, but for other people who may potentially be adding to the project. Inside that document we can all define rules that shape behaviour, and in doing so, we all benefit.
-
-Seeing that the conversation isn't carried between sessions, this `CLAUDE.md` file is a lifeline of some sort of memory that the agent can use to ensure consistency in its work.
-
-Claude's own memory notes about me are private, whereas the data in `CLAUDE.md` is shared to all who have access to the project.
+Having a `CLAUDE.md` file in the repo is extremely useful, not only for me, but for other people who may potentially be adding to the project. Inside that document we can all define rules that shape behaviour, and in doing so, we all benefit. Seeing that the conversation isn't carried between sessions, this `CLAUDE.md` file is a lifeline of some sort of memory that the agent can use to ensure consistency in its work.
 
 During development, Claude used the command `git mv`, which staged one of the files on my local branch without my knowing. When I committed, only that one file went into the commit, so I committed the other 12 files separately and ended up with two commits with the same message. When I went to check the work, I noticed this error. I undid both commits and committed all 13 files together, as they should have been.
 
