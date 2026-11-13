@@ -401,7 +401,7 @@ Authentication would need adding first (see [Skipped: authentication](#skipped-a
 
 ## How I used AI tools
 
-I worked with Claude Code to produce the application. Initial discussion and ideation happened first. We made a plan, and then implemented the plan setp-by-step, testing as we went.
+I worked with Claude Code to produce the application. Initial discussion and ideation happened first. We made a plan, and then implemented the plan step-by-step, testing as we went.
 
 How I work personally with AI is I let it make changes to my local branch, so I can see the diffs and check the code. I can spin it up and test out the last iteration of the implementation before committing the code and moving on. This ensures everything is checked and tested before moving on to the next step: nothing is committed before I've reviewed and tested it. I personally feel this is the best way to work with AI when producing code.
 
@@ -418,6 +418,8 @@ During development, Claude used the command `git mv`, which staged one of the fi
 After that error, and a brief discussion with Claude, it updated its memory so that it never touches git staging again: it changes files, and I stage and commit everything myself.
 
 Other issues came up along the way. I found a Drizzle bug while running the tests against a real Postgres database: a query compared each chunk's document ID with the chunk's own ID, so every document showed 0 chunks, while the unit tests with a fake database were passing. Another issue was that a planned change silently wasn't applied, down to the formatter reshaping the code Claude was editing; lint warnings about unused imports gave it away. Other issues were ones you couldn't see in the code, which we caught by taking screenshots in a real browser: for example, the phone menu's close button overlapped the document count, and a "not found" answer showed a confusing "Model: none, 0 tokens". For the rate-limiting implementation, the plugin's usual setup would have shown users a 500 (server error) when they hit the limit, whereas a 429 (too many requests) is the right response.
+
+Before sending off, as I always do, I got Claude to give the codebase a review to see if any issues could be found. Claude set off on the task and found a real bug: the background worker left a small piece of memory behind every time it waited for new jobs, so its memory would slowly grow for as long as it ran. Claude fixed it, added a test that fails on the old code, and removed three type casts that broke the rules in `CLAUDE.md`. It then told me that it "would be happy for a senior dev to look at this code", while in the same breath telling me that it hadn't yet read through all of the code. So off the back of that, I re-prompted Claude to read every file. That found some smaller issues, which were fixed: out-of-date comments, an error code that was never used, and one place where the code broke the project's own architecture rules.
 
 ### Do's
 
@@ -448,7 +450,7 @@ This comes first because the current eval is giving really high results (92% to 
 
 ### What I'd do differently in how I worked
 
-During this build, every bug that was introduced was spotted before the code was committed. That doesn't help with the quality of the data and responses, though. The evaluations were only put in later in the implementation; if I had improved that data early on, I could have tuned the chunk size instead of reasoning about it.
+During this build, almost every bug that was introduced was spotted before the code was committed; the one that wasn't, the worker memory bug, was caught in the final review. That doesn't help with the quality of the data and responses, though. The evaluations were only put in later in the implementation; if I had improved that data early on, I could have tuned the chunk size instead of reasoning about it.
 
 The initial part of this codebase was committed in one big chunk. This was done because I wanted a certain level of a proven system before making the first commit: I wanted document upload and ingestion to be the first thing that went in. In hindsight, this could have been split down further.
 
