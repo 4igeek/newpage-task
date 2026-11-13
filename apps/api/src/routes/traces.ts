@@ -13,7 +13,7 @@ import type { StoredTrace, TraceStore } from '../ports/index.js';
  *
  * These expose users' questions and answers, so in production they would sit
  * behind admin authentication (or only be reachable on an internal network).
- * The app has no auth yet; see "What I'd do with more time" in the README.
+ * The app has no auth yet; see "Skipped: authentication" in the README.
  */
 export const traceRoutes =
   (traces: TraceStore): FastifyPluginAsyncZod =>

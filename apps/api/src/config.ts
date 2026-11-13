@@ -14,7 +14,7 @@ const ConfigSchema = z.object({
   BLOB_DIR: z.string().default('./data/blobs'),
   MAX_UPLOAD_MB: z.coerce.number().positive().default(20),
 
-  // Embeddings (see ADR on embedding model choice).
+  // Embeddings (see "Embeddings" in the README for why this model).
   EMBEDDING_MODEL: z.string().default('Xenova/bge-small-en-v1.5'),
   MODEL_CACHE_DIR: z.string().default('./data/models'),
 

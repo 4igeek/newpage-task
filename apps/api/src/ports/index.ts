@@ -1,11 +1,10 @@
 /**
  * Ports: the interfaces services depend on. Each has one production adapter
- * in `adapters/` and a fake in `test/fakes/`. Swapping infrastructure
+ * in `adapters/` and a fake in `test/fakes.ts`. Swapping infrastructure
  * (local disk -> S3, local model -> hosted embeddings) means writing a new
  * adapter; no service changes.
  */
-import type { DocumentStatus, TraceOutcome, TraceStats } from '@docchat/shared';
-import type { TraceSourceRecord } from '../db/schema.js';
+import type { DocumentStatus, TraceOutcome, TraceSource, TraceStats } from '@docchat/shared';
 import type { ChunkDraft } from '../domain/chunker.js';
 import type { SupportedMimeType } from '../domain/file-types.js';
 import type { ParsedDocument } from '../domain/sections.js';
@@ -159,7 +158,7 @@ export interface QueryTrace {
   errorCode: string | null;
   model: string;
   answer: string;
-  sources: TraceSourceRecord[];
+  sources: TraceSource[];
   topSimilarity: number | null;
   citations: number[];
   invalidCitations: number[];

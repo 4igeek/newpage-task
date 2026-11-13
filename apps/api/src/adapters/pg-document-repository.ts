@@ -35,7 +35,7 @@ export class PgDocumentRepository implements DocumentRepository {
 
   async findById(id: string) {
     const [row] = await this.db.select(selection).from(documents).where(eq(documents.id, id));
-    return row ? row : null;
+    return row ?? null;
   }
 
   async findByHash(contentHash: string) {
@@ -43,12 +43,11 @@ export class PgDocumentRepository implements DocumentRepository {
       .select(selection)
       .from(documents)
       .where(eq(documents.contentHash, contentHash));
-    return row ? row : null;
+    return row ?? null;
   }
 
   async list() {
-    const rows = await this.db.select(selection).from(documents).orderBy(desc(documents.createdAt));
-    return rows;
+    return this.db.select(selection).from(documents).orderBy(desc(documents.createdAt));
   }
 
   async setStatus(

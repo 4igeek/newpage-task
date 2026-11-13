@@ -36,7 +36,6 @@ export interface AppDeps {
 const DOMAIN_ERROR_STATUS: Record<DomainErrorCode, number> = {
   UNSUPPORTED_FILE_TYPE: 415,
   EMPTY_FILE: 400,
-  FILE_TOO_LARGE: 413,
   NOT_FOUND: 404,
   NO_EXTRACTABLE_TEXT: 422,
   LLM_NOT_CONFIGURED: 503,

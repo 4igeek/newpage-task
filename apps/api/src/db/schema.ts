@@ -1,4 +1,4 @@
-import type { TraceOutcome } from '@docchat/shared';
+import type { TraceOutcome, TraceSource } from '@docchat/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -110,19 +110,6 @@ export const jobs = pgTable(
   (t) => [index('jobs_claim_idx').on(t.status, t.runAfter)],
 );
 
-/** Per-source detail kept on a trace: enough to see what retrieval returned and why. */
-export interface TraceSourceRecord {
-  n: number;
-  chunkId: string;
-  documentId: string;
-  filename: string;
-  heading: string | null;
-  similarity: number | null;
-  vectorRank: number | null;
-  keywordRank: number | null;
-  cited: boolean;
-}
-
 /**
  * One row per question asked: the observability record. Answers how well
  * retrieval and generation are doing over time (gate rate, invalid citations,
@@ -145,7 +132,7 @@ export const queryTraces = pgTable(
     errorCode: text('error_code'),
     model: text('model').notNull(),
     answer: text('answer').notNull(),
-    sources: jsonb('sources').$type<TraceSourceRecord[]>().notNull(),
+    sources: jsonb('sources').$type<TraceSource[]>().notNull(),
     topSimilarity: real('top_similarity'),
     citations: integer('citations').array().notNull(),
     invalidCitations: integer('invalid_citations').array().notNull(),

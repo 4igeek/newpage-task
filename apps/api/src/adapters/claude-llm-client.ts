@@ -99,7 +99,7 @@ function toLLMError(err: unknown): unknown {
 /** Used when no API key is configured: the app still runs, retrieval still works. */
 export class UnconfiguredLLMClient implements LLMClient {
   readonly modelId = 'none';
-  complete(): Promise<never> {
+  async complete(): Promise<never> {
     throw new LLMError('LLM_NOT_CONFIGURED', 'Set ANTHROPIC_API_KEY to enable answers.');
   }
   // biome-ignore lint/correctness/useYield: always throws before yielding

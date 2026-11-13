@@ -151,6 +151,20 @@ export type ChatEvent = z.infer<typeof ChatEvent>;
 export const TraceOutcome = z.enum([...AnswerOutcome.options, 'error', 'aborted']);
 export type TraceOutcome = z.infer<typeof TraceOutcome>;
 
+/** Per-source detail kept on a trace: enough to see what retrieval returned and why. */
+export const TraceSource = z.object({
+  n: z.number().int(),
+  chunkId: z.uuid(),
+  documentId: z.uuid(),
+  filename: z.string(),
+  heading: z.string().nullable(),
+  similarity: z.number().nullable(),
+  vectorRank: z.number().int().nullable(),
+  keywordRank: z.number().int().nullable(),
+  cited: z.boolean(),
+});
+export type TraceSource = z.infer<typeof TraceSource>;
+
 export const TraceDto = z.object({
   id: z.uuid(),
   requestId: z.string(),
@@ -163,19 +177,7 @@ export const TraceDto = z.object({
   errorCode: z.string().nullable(),
   model: z.string(),
   answer: z.string(),
-  sources: z.array(
-    z.object({
-      n: z.number().int(),
-      chunkId: z.uuid(),
-      documentId: z.uuid(),
-      filename: z.string(),
-      heading: z.string().nullable(),
-      similarity: z.number().nullable(),
-      vectorRank: z.number().int().nullable(),
-      keywordRank: z.number().int().nullable(),
-      cited: z.boolean(),
-    }),
-  ),
+  sources: z.array(TraceSource),
   topSimilarity: z.number().nullable(),
   citations: z.array(z.number().int()),
   invalidCitations: z.array(z.number().int()),

@@ -19,8 +19,8 @@ export interface RetrievalSettings {
   minSimilarity: number;
 }
 
+/** `score` is the fused RRF score; ranks are 1-based positions in each list, null if absent. */
 export interface RetrievedChunk extends ChunkHit {
-  /** Fused RRF score; ranks are 1-based positions in each list, null if absent. */
   vectorRank: number | null;
   keywordRank: number | null;
   similarity: number | null;

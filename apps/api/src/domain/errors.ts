@@ -5,7 +5,6 @@
 export type DomainErrorCode =
   | 'UNSUPPORTED_FILE_TYPE'
   | 'EMPTY_FILE'
-  | 'FILE_TOO_LARGE'
   | 'NOT_FOUND'
   | 'NO_EXTRACTABLE_TEXT'
   | 'LLM_NOT_CONFIGURED'
