@@ -1,5 +1,7 @@
 # DocChat
 
+[![CI](https://github.com/4igeek/newpage-task/actions/workflows/ci.yml/badge.svg)](https://github.com/4igeek/newpage-task/actions/workflows/ci.yml)
+
 Chat with your documents. Upload PDFs, Markdown or text files and ask questions in plain English. Every answer comes only from your documents, cites the passages it used, and can be traced back to how it was retrieved.
 
 ![Chat with cited answers](docs/screenshots/chat.png)
@@ -52,6 +54,8 @@ make dev      # API on :3000, worker, and web on :5173 with hot reload
 | `pnpm test:e2e`         | Browser tests against a throwaway copy of the whole stack; no API key used  |
 | `pnpm eval:retrieval`   | Retrieval quality report; free, needs Docker                                |
 | `pnpm eval:answers`     | Answer quality graded by Claude; needs Docker and an API key (~$0.45 a run) |
+
+Every push to `main` and every pull request runs [GitHub Actions](.github/workflows/ci.yml) with three jobs in parallel: **check** (lint, type check, unit and integration tests, and a production build), **docker** (builds every image) and **e2e** (the browser tests against the full stack). No job uses an API key.
 
 ## Architecture overview
 
