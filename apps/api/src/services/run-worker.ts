@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { PermanentIngestionError } from '../domain/errors.js';
 import type { JobQueue, Logger } from '../ports/index.js';
 import type { IngestDocument } from './ingest-document.js';
@@ -58,16 +59,7 @@ export async function runWorker(
   }
 }
 
+/** Resolves after `ms`, or early on abort. Uses Node's built-in so no abort listener is left behind per poll. */
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      { once: true },
-    );
-  });
+  return delay(ms, undefined, { signal }).catch(() => undefined);
 }

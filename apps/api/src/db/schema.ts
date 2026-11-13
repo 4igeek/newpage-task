@@ -1,3 +1,4 @@
+import type { TraceOutcome } from '@docchat/shared';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -13,6 +14,7 @@ import {
   uuid,
   vector,
 } from 'drizzle-orm/pg-core';
+import type { SupportedMimeType } from '../domain/file-types.js';
 
 /** Dimension of the local embedding model (bge-small-en-v1.5). */
 export const EMBEDDING_DIMENSIONS = 384;
@@ -43,7 +45,7 @@ export const documentStatus = pgEnum('document_status', [
 export const documents = pgTable('documents', {
   id: uuid('id').primaryKey().defaultRandom(),
   filename: text('filename').notNull(),
-  mimeType: text('mime_type').notNull(),
+  mimeType: text('mime_type').$type<SupportedMimeType>().notNull(),
   sizeBytes: integer('size_bytes').notNull(),
   contentHash: text('content_hash').notNull().unique(),
   status: documentStatus('status').notNull().default('pending'),
@@ -139,7 +141,7 @@ export const queryTraces = pgTable(
     rewritten: boolean('rewritten').notNull(),
     /** Null means all documents were searched. */
     documentIds: uuid('document_ids').array(),
-    outcome: text('outcome').notNull(),
+    outcome: text('outcome').$type<TraceOutcome>().notNull(),
     errorCode: text('error_code'),
     model: text('model').notNull(),
     answer: text('answer').notNull(),

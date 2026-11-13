@@ -1,8 +1,9 @@
+import { getEventListeners } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { DefaultDocumentParser } from '../../src/adapters/document-parser.js';
 import type { Job, JobQueue } from '../../src/ports/index.js';
 import { IngestDocument } from '../../src/services/ingest-document.js';
-import { processNextJob } from '../../src/services/run-worker.js';
+import { processNextJob, runWorker } from '../../src/services/run-worker.js';
 import { UploadDocument } from '../../src/services/upload-document.js';
 import {
   FakeEmbedder,
@@ -173,5 +174,38 @@ describe('processNextJob', () => {
     });
     expect(queue.fail).toHaveBeenCalledWith('job-1', 'still broken', null);
     expect(onPermanentFailure).toHaveBeenCalledWith('doc-1', 'still broken');
+  });
+});
+
+describe('runWorker', () => {
+  it('does not leave an abort listener behind for each idle poll', async () => {
+    const controller = new AbortController();
+    let polls = 0;
+    const queue: JobQueue = {
+      claim: vi.fn(async () => {
+        if (++polls === 20) controller.abort();
+        return null;
+      }),
+      complete: vi.fn(async () => {}),
+      fail: vi.fn(async () => {}),
+    };
+    const listenersBefore = getEventListeners(controller.signal, 'abort').length;
+    const running = runWorker(
+      {
+        queue,
+        ingest: { execute: vi.fn(async () => {}) },
+        onPermanentFailure: vi.fn(),
+        logger: silentLogger,
+        settings: { pollIntervalMs: 1, maxAttempts: 3, retryBaseMs: 1000 },
+      },
+      controller.signal,
+    );
+    // Sample mid-run: the old sleep added one listener per poll and never removed it.
+    await new Promise((r) => setTimeout(r, 15));
+    expect(getEventListeners(controller.signal, 'abort').length).toBeLessThanOrEqual(
+      listenersBefore + 1,
+    );
+    await running;
+    expect(polls).toBe(20);
   });
 });

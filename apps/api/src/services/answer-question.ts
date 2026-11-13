@@ -84,9 +84,11 @@ export class AnswerQuestion {
     } finally {
       // Runs on success, on error, and when the consumer stops iterating
       // (the user navigated away), so every question leaves a trace.
-      trace.outcome ??= options.signal?.aborted ? 'aborted' : 'error';
-      trace.totalMs = Math.round(performance.now() - startedAt);
-      await this.save(trace as QueryTrace);
+      await this.save({
+        ...trace,
+        outcome: trace.outcome ?? (options.signal?.aborted ? 'aborted' : 'error'),
+        totalMs: Math.round(performance.now() - startedAt),
+      });
     }
   }
 

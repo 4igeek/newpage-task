@@ -1,4 +1,3 @@
-import type { TraceOutcome } from '@docchat/shared';
 import { desc, gte, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { queryTraces } from '../db/schema.js';
@@ -17,8 +16,7 @@ export class PgTraceStore implements TraceStore {
       .from(queryTraces)
       .orderBy(desc(queryTraces.createdAt))
       .limit(limit);
-    // `outcome` is plain text in the DB; only TraceOutcome values are ever written.
-    return rows.map((r) => ({ ...r, outcome: r.outcome as TraceOutcome }));
+    return rows;
   }
 
   async stats(since: Date) {
