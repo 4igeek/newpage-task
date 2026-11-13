@@ -151,7 +151,7 @@ All request and response shapes are Zod schemas in [`packages/shared`](packages/
 
 ### Configuration
 
-Set in `.env` (see [`.env.example`](.env.example)). All values are validated at startup; the defaults are in [`apps/api/src/config.ts`](apps/api/src/config.ts).
+The only value you need to set is `ANTHROPIC_API_KEY` in `.env`. Everything else has a sensible default, and you can override any of these in `.env` to change how the app behaves. All values are validated at startup; the defaults are in [`apps/api/src/config.ts`](apps/api/src/config.ts).
 
 | Variable                                            | Default                    |                                                             |
 | --------------------------------------------------- | -------------------------- | ----------------------------------------------------------- |
