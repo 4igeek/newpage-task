@@ -4,6 +4,8 @@ Chat with your documents. Upload PDFs, Markdown or text files and ask questions 
 
 ![Chat with cited answers](docs/screenshots/chat.png)
 
+**Demo video:** [watch the walkthrough on YouTube](https://youtu.be/kMXIM1Rf2jU)
+
 **Features**
 
 - **Grounded answers with citations.** Answers stream token by token. Each claim cites a numbered source chip that opens the exact passage.
