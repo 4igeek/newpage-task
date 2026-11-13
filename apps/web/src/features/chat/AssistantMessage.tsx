@@ -115,7 +115,7 @@ function SourceList({
       <h3 className="mb-1.5 text-[0.7rem] font-semibold tracking-wide text-stone-500 uppercase dark:text-stone-400">
         Sources
       </h3>
-      <ul className="flex flex-wrap gap-1.5">
+      <ul aria-label="Sources" className="flex flex-wrap gap-1.5">
         {sources.map((s) => {
           // Until the answer is complete we don't know which sources were cited.
           const dim = done && !cited.has(s.n);

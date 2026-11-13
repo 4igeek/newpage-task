@@ -46,9 +46,10 @@ make dev      # API on :3000, worker, and web on :5173 with hot reload
 
 | Command                 | What it runs                                                                |
 | ----------------------- | --------------------------------------------------------------------------- |
-| `make check`            | Lint, type check, unit and integration tests (what CI runs)                 |
+| `make check`            | Lint, type check, unit, integration and end-to-end tests (what CI runs)     |
 | `pnpm test`             | Unit tests (API and web), no Docker needed                                  |
 | `pnpm test:integration` | Postgres adapter tests against a throwaway pgvector container               |
+| `pnpm test:e2e`         | Browser tests against a throwaway copy of the whole stack; no API key used  |
 | `pnpm eval:retrieval`   | Retrieval quality report; free, needs Docker                                |
 | `pnpm eval:answers`     | Answer quality graded by Claude; needs Docker and an API key (~$0.45 a run) |
 
@@ -129,6 +130,7 @@ apps/api            Fastify API + ingestion worker
   test/             Unit tests (fakes) and integration tests (real Postgres)
 apps/web            React + Vite frontend (features/documents, chat, inspect)
 packages/shared     Zod schemas: the API contract used by both apps
+e2e                 Playwright browser tests against the full Docker stack
 sample-docs         Demo corpus
 docs/screenshots    Screenshots of the running app
 docs/demo           Prompt-injection test file
@@ -351,9 +353,11 @@ This is down to what each of the tests actually proves. Unit tests test logic wh
 
 The one thing that I classed as out of scope for this project was authentication. I'm not a fan of making systems that don't have auth on them, but due to the time constraints on this project, the decision was made to keep this as a small prototype where auth can be added at a later date if required. Adding auth would be the next step.
 
-### Skipped: end-to-end browser tests
+### End-to-end browser tests
 
-There are no automated end-to-end tests that use the app in a real browser, the way a user would. These would be worth adding, because otherwise nothing would catch the UI breaking.
+I made the decision to add end-to-end tests because I felt like I still had some time to spare before I needed to hand this task in. I wanted to make sure that the tests were in place to catch any browser-related issues: not just currently, but also moving forwards, should someone else make changes to the project.
+
+`pnpm test:e2e` uses Playwright to drive the app in a real browser, the way a user would: uploading documents, asking questions, opening sources in the inspector, limiting the search to one document, and deleting. It starts a throwaway copy of the whole app in Docker and deletes it afterwards. No API key is used, so the tests never call Claude or cost money.
 
 ## Productionising on AWS / GCP / Azure / Cloudflare
 
@@ -454,7 +458,7 @@ During this build, almost every bug that was introduced was spotted before the c
 
 The initial part of this codebase was committed in one big chunk. This was done because I wanted a certain level of a proven system before making the first commit: I wanted document upload and ingestion to be the first thing that went in. In hindsight, this could have been split down further.
 
-Another thing I could have improved on was storing the Playwright scripts Claude used to check the app, instead of letting them expire in its scratch pad. This would have helped cover the end-to-end testing that is currently lacking in the project.
+Another thing I could have improved on was storing the Playwright scripts Claude used to check the app, instead of letting them expire in its scratch pad. Had I kept them, the end-to-end tests could have been in place from the start, rather than added at the end.
 
 ## Screenshots
 

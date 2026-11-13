@@ -95,7 +95,7 @@ export function DocumentLibrary({
                   : 'Tick documents to limit the chat to them.'}
               </p>
             )}
-            <ul className="space-y-0.5">
+            <ul aria-label="Uploaded documents" className="space-y-0.5">
               {docs.map((doc) => (
                 <DocumentItem
                   key={doc.id}

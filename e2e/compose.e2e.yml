@@ -1,0 +1,15 @@
+# Layered on top of the root docker-compose.yml for end-to-end tests.
+# Runs as its own compose project (see run.sh), so it never touches the
+# stack you use day to day: separate containers, volumes and ports.
+services:
+  db:
+    ports: !override []
+  api:
+    ports: !override []
+    # No API key, ever: the tests must never call a paid API. Without a key
+    # the app still uploads, ingests and retrieves; answers show a notice.
+    env_file: !reset []
+    environment:
+      ANTHROPIC_API_KEY: ""
+  web:
+    ports: !override ["18080:80"]

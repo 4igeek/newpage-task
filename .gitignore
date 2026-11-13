@@ -8,6 +8,8 @@ data/
 *.log
 .DS_Store
 .vite/
+playwright-report/
+test-results/
 
 # Personal working notes (README drafting); never committed.
 .notes/
