@@ -18,7 +18,7 @@ codebase follows so generated code matches them without re-explaining.
 - Validate all external input (HTTP bodies, env, LLM JSON) with Zod at the boundary.
 - Errors: throw typed domain errors from services; the Fastify error handler maps them to HTTP.
 - Logging: use the request-scoped `req.log` / injected logger; structured fields, never string-concatenated secrets or document content.
-- No new runtime dependency without a one-line justification in the PR/ADR.
+- No new runtime dependency without a one-line justification in the commit message or the README's Key technical decisions.
 
 ## Testing rules
 

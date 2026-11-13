@@ -74,7 +74,7 @@ flowchart LR
   API -->|"stream answer"| CL
 ```
 
-<!-- TODO(you): one paragraph in your own words on the shape of the system and why. -->
+It's a static SPA, an API and a worker, sharing one Postgres. The worker handles the slow processing of uploads, so requests aren't held open while slow CPU work runs (see [Background processing for uploads](#background-processing-for-uploads)).
 
 **Uploading a document.** The API checks the file type from its content (not the client's Content-Type), stores it under its SHA-256 hash (so duplicate uploads are free), and inserts the document row and its ingestion job in one transaction. It returns at once. The worker claims the job, parses the file (per page for PDFs, per heading for Markdown), splits it into ~350-token chunks, embeds them locally with `bge-small-en-v1.5`, and replaces the document's chunks atomically, so retries never duplicate anything.
 
@@ -126,7 +126,7 @@ apps/api            Fastify API + ingestion worker
 apps/web            React + Vite frontend (features/documents, chat, inspect)
 packages/shared     Zod schemas: the API contract used by both apps
 sample-docs         Demo corpus
-docs/               Screenshots and architecture decision records
+docs/screenshots    Screenshots of the running app
 ```
 
 ### API
@@ -182,7 +182,7 @@ Both evals run against a fresh database with `sample-docs/` ingested by the prod
 | Latency p50 / p95                                           | 1.3 s / 2.1 s                                 |
 | Cost of the run                                             | $0.43                                         |
 
-<!-- TODO(you): your interpretation, including the caveats (easy test set, same-family grader, small sample). -->
+These results aren't conclusive, because the tests aren't comprehensive enough. See [Quality](#quality) for why, and what I'd change.
 
 ## RAG / LLM approach and decisions
 
